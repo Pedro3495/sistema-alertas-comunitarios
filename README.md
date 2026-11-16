@@ -8,7 +8,16 @@ Projeto acadêmico em dupla. Base de desenvolvimento em Java 21, Spring Boot 4.1
 
 Instale Git, JDK 21 e Docker Desktop com Docker Compose. Abra o Docker Desktop antes de começar. Cada integrante usa seu próprio clone e seu próprio banco local; não compartilhem a pasta de código por Drive/OneDrive nem o arquivo `.env`.
 
-Depois de clonar o repositório, execute na raiz:
+Repositório público: <https://github.com/Pedro3495/sistema-alertas-comunitarios>.
+
+Cada integrante clona no próprio computador:
+
+```sh
+git clone https://github.com/Pedro3495/sistema-alertas-comunitarios.git
+cd sistema-alertas-comunitarios
+```
+
+Depois execute na raiz:
 
 **macOS / Linux**
 

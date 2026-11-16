@@ -4,6 +4,10 @@
 
 Cada pessoa tem seu clone, seu PostgreSQL e sua branch. A IA do Pedro não edita a pasta do colega e vice-versa. O GitHub compartilha código por commits e PRs; não é uma pasta em edição simultânea.
 
+## Liberar o acesso do colega
+
+O responsável decidiu informar o usuário GitHub depois. No repositório, abrir Settings → Collaborators → Add people e convidar o usuário do colega com permissão de escrita (Write). O colega precisa aceitar o convite antes de conseguir publicar branches. Ler/clonar o código público não concede acesso de escrita.
+
 ## Uma tarefa do começo ao fim
 
 1. Escolher issue/cartão e registrar responsável, revisor, RF e escopo. O colega não inicia a mesma tarefa.

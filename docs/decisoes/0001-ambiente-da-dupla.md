@@ -2,7 +2,7 @@
 
 Data: 16/11/2026.
 
-Estado: stack aprovada pelo responsável; preparação local verificada. Publicação remota e acesso do colega dependem das respostas pendentes.
+Estado: stack e publicação pública aprovadas pelo responsável; preparação local verificada. O acesso do colega será adicionado depois pelo responsável.
 
 ## Contexto
 
