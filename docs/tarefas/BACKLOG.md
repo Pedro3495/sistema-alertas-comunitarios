@@ -30,3 +30,19 @@ A avaliação exige no mínimo sete funcionalidades completas. Não selecionar s
 2. Ler os requisitos RF003/RF004 juntos; combinar uma tarefa para cada pessoa.
 3. Modelar o mínimo necessário e reservar números de migração distintos antes de pedir execução às IAs.
 4. Fazer PRs pequenos, revisar o trabalho um do outro e explicar as escolhas de POO.
+
+## Issues criadas no GitHub
+
+- [RF001 - Cadastrar moradores](https://github.com/Pedro3495/sistema-alertas-comunitarios/issues/1) — a fazer, sem responsável atribuído.
+- [RF002 - Cadastrar residências e vincular a área](https://github.com/Pedro3495/sistema-alertas-comunitarios/issues/2) — a fazer, sem responsável atribuído.
+- [RF003 - Cadastrar e definir áreas de risco](https://github.com/Pedro3495/sistema-alertas-comunitarios/issues/3) — a fazer, sem responsável atribuído.
+- [RF004 - Gerenciar contas dos representantes](https://github.com/Pedro3495/sistema-alertas-comunitarios/issues/4) — a fazer, sem responsável atribuído.
+- [RF005 - Autenticar e definir a primeira senha](https://github.com/Pedro3495/sistema-alertas-comunitarios/issues/5) — a fazer, sem responsável atribuído.
+- [RF006 - Registrar ocorrências](https://github.com/Pedro3495/sistema-alertas-comunitarios/issues/6) — a fazer, sem responsável atribuído.
+- [RF007 - Recuperar acesso do morador](https://github.com/Pedro3495/sistema-alertas-comunitarios/issues/7) — a fazer, sem responsável atribuído.
+- [RF008 - Consultar e acompanhar ocorrências](https://github.com/Pedro3495/sistema-alertas-comunitarios/issues/8) — a fazer, sem responsável atribuído.
+- [RF009 - Verificar ocorrências](https://github.com/Pedro3495/sistema-alertas-comunitarios/issues/9) — a fazer, sem responsável atribuído.
+- [RF010 - Emitir e distribuir alertas](https://github.com/Pedro3495/sistema-alertas-comunitarios/issues/10) — a fazer, sem responsável atribuído.
+- [RF011 - Alterar ocorrências e notificar](https://github.com/Pedro3495/sistema-alertas-comunitarios/issues/11) — a fazer, sem responsável atribuído.
+- [RF012 - Encerrar ocorrências e notificar](https://github.com/Pedro3495/sistema-alertas-comunitarios/issues/12) — a fazer, sem responsável atribuído.
+- [RF013 - Registrar e consultar auditoria](https://github.com/Pedro3495/sistema-alertas-comunitarios/issues/13) — a fazer, sem responsável atribuído.

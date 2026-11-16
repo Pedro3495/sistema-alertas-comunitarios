@@ -14,8 +14,14 @@
 ## Pendente
 
 - Usuário GitHub do colega e liberação de acesso. O responsável optou por adicioná-lo depois, nas configurações do repositório, com permissão de escrita.
-- Conferir o último resultado do CI na aba Actions e a proteção da main em Settings → Branches. Evidências da configuração inicial serão registradas abaixo após a verificação remota.
 - Preparação no computador do colega e teste dos scripts PowerShell em Windows, se esse for o sistema usado por ele.
 - Implementação dos 13 RF e suas regras transversais. O ambiente não declara sete funcionalidades operacionais.
 
 Atualizar este arquivo quando as pendências forem resolvidas. Não marcar publicação, convite ou proteção de branch como concluídos sem conferir o estado remoto.
+
+## Evidências remotas iniciais
+
+- Primeiro CI passou: https://github.com/Pedro3495/sistema-alertas-comunitarios/actions/runs/43871322880 (commit ce184ad51b3351310144a4de81ccb05a64525a4a).
+- 13 issues abertas, uma por RF, sem atribuição inventada: https://github.com/Pedro3495/sistema-alertas-comunitarios/issues.
+- Proteção da main: PR obrigatório, uma aprovação, CI obrigatório com base atualizada, conversas resolvidas; sem force push nem exclusão da branch. O colega precisa aceitar acesso de escrita para atuar como revisor.
+- Repositório público verificado. Nenhum convite ao colega foi enviado, por decisão do responsável.
