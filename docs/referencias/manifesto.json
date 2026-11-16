@@ -1,0 +1,60 @@
+{
+  "arquivo": "Requisitos_Aprovados.docx",
+  "sha256": "f47da7f8a689957ed9041011230cf887175911f832caaab8b017662e85b70658",
+  "status": "Aprovado pelo responsável pelo projeto em 16/11/2026",
+  "observacao": "Cópia binária preservada; transcrições Markdown derivam dos textos das tabelas. Não modificar o documento por iniciativa da IA.",
+  "requisitos_funcionais": [
+    {
+      "id": "RF001",
+      "titulo": "RF001 - Cadastrar moradores"
+    },
+    {
+      "id": "RF002",
+      "titulo": "RF002 - Cadastrar residências e vincular a área"
+    },
+    {
+      "id": "RF003",
+      "titulo": "RF003 - Cadastrar e definir áreas de risco"
+    },
+    {
+      "id": "RF004",
+      "titulo": "RF004 - Gerenciar contas dos representantes"
+    },
+    {
+      "id": "RF005",
+      "titulo": "RF005 - Autenticar e definir a primeira senha"
+    },
+    {
+      "id": "RF006",
+      "titulo": "RF006 - Registrar ocorrências"
+    },
+    {
+      "id": "RF007",
+      "titulo": "RF007 - Recuperar acesso do morador"
+    },
+    {
+      "id": "RF008",
+      "titulo": "RF008 - Consultar e acompanhar ocorrências"
+    },
+    {
+      "id": "RF009",
+      "titulo": "RF009 - Verificar ocorrências"
+    },
+    {
+      "id": "RF010",
+      "titulo": "RF010 - Emitir e distribuir alertas"
+    },
+    {
+      "id": "RF011",
+      "titulo": "RF011 - Alterar ocorrências e notificar"
+    },
+    {
+      "id": "RF012",
+      "titulo": "RF012 - Encerrar ocorrências e notificar"
+    },
+    {
+      "id": "RF013",
+      "titulo": "RF013 - Registrar e consultar auditoria"
+    }
+  ]
+}

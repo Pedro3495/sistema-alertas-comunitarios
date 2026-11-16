@@ -1,0 +1,1 @@
+Siga o arquivo `AGENTS.md` da raiz como instrução compartilhada do projeto. Leia `prd.md`, `arquitetura.md` e a spec do RF antes de sugerir ou editar código. Não invente requisitos, não altere o Word aprovado e não trate a preparação do ambiente como funcionalidade implementada.

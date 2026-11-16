@@ -1,0 +1,41 @@
+name: Verificar projeto
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verificar:
+    name: Compilar e testar com PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: alertas_ci
+          POSTGRES_USER: alertas_ci
+          POSTGRES_PASSWORD: senha-apenas-ci-descartavel
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U alertas_ci -d alertas_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      POSTGRES_DB: alertas_ci
+      POSTGRES_USER: alertas_ci
+      POSTGRES_PASSWORD: senha-apenas-ci-descartavel
+      POSTGRES_PORT: 5432
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Compilar e testar
+        run: ./mvnw -B verify
+      - name: Conferir whitespace
+        run: git diff --check
