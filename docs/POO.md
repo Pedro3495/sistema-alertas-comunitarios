@@ -12,3 +12,9 @@ POO representa 60% da avaliação. As evidências abaixo acompanham os objetos d
 Expliquem por que cada escolha ajuda o domínio. Anotações JPA ou estender uma classe do framework, por si só, não demonstram domínio dos quatro pilares. A escolha de onde usar herança deve ser discutida durante a modelagem, antes de construir uma hierarquia artificial.
 
 O recorte de áreas não demonstra ainda herança ou polimorfismo de negócio. A herança da interface `JpaRepository` faz parte da infraestrutura e não deve ser apresentada como se os quatro pilares estivessem resolvidos. Veja [o guia da base de áreas](areas/README.md).
+
+## Base de representantes
+
+`Representante` protege seus campos e valida o cadastro antes de alterar o estado. Senha/hash não têm getter público. `RepresentanteService` coordena operações e transações, usando `RepresentanteRepository` para persistência, `PasswordEncoder` para hash e `Clock` para tempo. São dependências com contratos reais; o teste substitui o relógio e usa o encoder real para conferir hash e validade. Veja [o guia de representantes](representantes/README.md).
+
+Isso acrescenta evidências de encapsulamento, abstração e substituição de dependências. Não foi inventada uma hierarquia de herança de domínio para preencher o critério acadêmico; essa parte permanece a demonstrar quando houver relação adequada na modelagem.
