@@ -1,0 +1,23 @@
+<!doctype html><html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gerenciar representante · Alertas comunitários</title><link rel="stylesheet" th:href="@{/css/gestao.css}"></head>
+<body class="gestao"><header class="cabecalho"><a th:href="@{/}">Alertas comunitários</a>
+<nav aria-label="Navegação do administrador"><a th:href="@{/admin/representantes}">Representantes</a><a th:href="@{/admin/auditoria}">Auditoria</a>
+<form th:action="@{/admin/sair}" method="post"><button class="secundario" type="submit">Sair</button></form></nav></header><main>
+<h1 th:text="${id == null ? 'Cadastrar representante' : 'Gerenciar representante'}"></h1>
+<p class="mensagem erro" role="alert" th:if="${erro}" th:text="${erro}"></p>
+<form class="formulario" th:action="${id == null} ? @{/admin/representantes/novo} : @{/admin/representantes/{id}/editar(id=${id})}" method="post">
+<div class="campo"><label for="nomeCompleto">Nome completo</label><input id="nomeCompleto" name="nomeCompleto" required autocomplete="name" th:value="${dados.nomeCompleto}" aria-describedby="erro-nomeCompleto" th:attr="aria-invalid=${erros.containsKey('nomeCompleto')}"><p class="erro-campo" id="erro-nomeCompleto" role="alert" th:text="${erros['nomeCompleto']}"></p></div>
+<div class="campo"><label for="entidadePublica">Entidade pública</label><input id="entidadePublica" name="entidadePublica" required autocomplete="organization" th:value="${dados.entidadePublica}" aria-describedby="erro-entidadePublica" th:attr="aria-invalid=${erros.containsKey('entidadePublica')}"><p class="erro-campo" id="erro-entidadePublica" role="alert" th:text="${erros['entidadePublica']}"></p></div>
+<div class="campo"><label for="login">Login</label><input id="login" name="login" required autocomplete="off" th:value="${dados.login}" aria-describedby="erro-login" th:attr="aria-invalid=${erros.containsKey('login')}"><p class="erro-campo" id="erro-login" role="alert" th:text="${erros['login']}"></p></div>
+<div class="campo" th:if="${id == null}"><label for="senhaTemporaria">Senha temporária</label><input id="senhaTemporaria" name="senhaTemporaria" type="password" autocomplete="new-password" required aria-describedby="orientacaoSenha erro-senhaTemporaria"><p id="orientacaoSenha" class="orientacao">Use no mínimo 8 caracteres, sem combinação obrigatória. Defina a senha e entregue diretamente ao representante. Ela vale por 24 horas e deverá ser trocada no primeiro acesso.</p><p id="erro-senhaTemporaria" class="erro-campo" role="alert" th:text="${erros['senhaTemporaria']}"></p></div>
+<button type="submit" th:text="${id == null ? 'Cadastrar representante' : 'Salvar alterações'}"></button></form>
+<section class="manutencao" th:if="${id != null}"><h2>Situação da conta</h2>
+<p th:text="${conta.ativa ? 'A conta está ativa.' : 'A conta está desativada.'}"></p>
+<form th:action="${conta.ativa} ? @{/admin/representantes/{id}/desativar(id=${id})} : @{/admin/representantes/{id}/reativar(id=${id})}" method="post">
+<label class="confirmacao"><input name="confirmacao" type="checkbox" value="true" required><span th:text="${conta.ativa ? 'Confirmo a desativação. O representante perderá o acesso.' : 'Confirmo a reativação desta mesma conta.'}"></span></label>
+<button class="secundario" type="submit" th:text="${conta.ativa ? 'Desativar conta' : 'Reativar conta'}"></button></form>
+<h2>Redefinir senha temporária</h2><p>A senha anterior não pode ser consultada. Defina outra e entregue diretamente ao representante.</p>
+<form th:action="@{/admin/representantes/{id}/senha-temporaria(id=${id})}" method="post"><div class="campo"><label for="novaTemporaria">Nova senha temporária</label><input id="novaTemporaria" name="senhaTemporaria" type="password" required autocomplete="new-password" aria-describedby="ajudaTemporaria erro-reset"><p class="orientacao" id="ajudaTemporaria">No mínimo 8 caracteres. Validade de 24 horas, com troca obrigatória no primeiro acesso.</p><p class="erro-campo" id="erro-reset" role="alert" th:text="${erroSenha}"></p></div><label class="confirmacao"><input name="confirmacao" type="checkbox" value="true" required><span>Confirmo a redefinição e a entrega direta da nova senha.</span></label><button class="secundario" type="submit">Redefinir senha temporária</button></form></section>
+<p class="voltar"><a th:href="@{/admin/representantes}">Voltar para representantes</a></p>
+</main></body></html>
