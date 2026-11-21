@@ -94,7 +94,7 @@ class AcessoRepresentanteHttpTests {
         assertThat(pagina.statusCode()).isEqualTo(200);
         assertThat(pagina.body()).doesNotContain(TEMPORARIA, DEFINITIVA);
         assertThat(navegador.get("/trocar-senha").statusCode()).isEqualTo(403);
-        assertThat(navegador.get("/auditoria").statusCode()).isEqualTo(403);
+        assertThat(navegador.get("/auditoria").statusCode()).isEqualTo(200);
 
         assertThat(navegador.get("/sair").statusCode()).isIn(403, 404, 405);
         assertThat(navegador.get("/representante").statusCode()).isEqualTo(200);

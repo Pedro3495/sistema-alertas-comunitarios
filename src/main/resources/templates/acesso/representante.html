@@ -12,6 +12,7 @@
   <h1>Você entrou na sua conta</h1>
   <p>Login: <strong class="identidade" th:text="${login}"></strong></p>
   <p class="introducao">As funções de gestão de ocorrências ainda estão em desenvolvimento.</p>
+  <p><a th:href="@{/auditoria}">Consultar auditoria</a></p>
   <form th:action="@{/sair}" method="post">
     <button class="secundario" type="submit">Sair da conta</button>
   </form>
