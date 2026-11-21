@@ -1,6 +1,6 @@
 # Backlog inicial e sequência de integração
 
-Planejamento técnico proposto para a dupla, sem reduzir os 13 RF aprovados. Todos os RF começam **a fazer**. Antes de começar, escolher o responsável e o revisor; os nomes ainda não foram informados. Use as issues/PRs como registro de trabalho em andamento; este arquivo é a referência inicial.
+Atualização de 21/11/2026: o colega não continuará. Pedro assume a responsabilidade pelas tarefas, com execução assistida por IA e subagentes. As issues/PRs registram o andamento real; as atribuições antigas da dupla são histórico. O fluxo atual está em [SDD](../SDD.md), sem reduzir os 13 RF aprovados.
 
 | Etapa | Tarefas candidatas | Coordenação |
 |---|---|---|
