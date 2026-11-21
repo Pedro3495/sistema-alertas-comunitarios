@@ -89,7 +89,7 @@ public class RepresentanteService {
     }
 
     private Representante buscar(Long id) {
-        return repository.findById(id)
+        return repository.buscarPorIdComBloqueio(id)
                 .orElseThrow(() -> new EntityNotFoundException("Representante não encontrado."));
     }
 
@@ -101,7 +101,7 @@ public class RepresentanteService {
         }
     }
 
-    private static void validarSenha(String senha) {
+    static void validarSenha(String senha) {
         if (senha == null || senha.codePointCount(0, senha.length()) < 8) {
             throw new IllegalArgumentException("A senha deve ter no mínimo 8 caracteres.");
         }

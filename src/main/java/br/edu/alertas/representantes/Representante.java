@@ -6,8 +6,10 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Entity
 @Table(name = "representantes")
@@ -37,6 +39,15 @@ public class Representante {
     @Column(name = "senha_temporaria_expira_em", nullable = false)
     private Instant senhaTemporariaExpiraEm;
 
+    @Column(name = "falhas_login", nullable = false)
+    private int falhasLogin;
+
+    @Column(name = "bloqueado_ate")
+    private Instant bloqueadoAte;
+
+    @Column(name = "versao_credencial", nullable = false)
+    private long versaoCredencial;
+
     protected Representante() {
         // Construtor usado pelo JPA para reconstruir a conta persistida.
     }
@@ -52,12 +63,18 @@ public class Representante {
         exigirPreenchimento(nomeCompleto, "Informe o nome completo do representante.");
         exigirPreenchimento(entidadePublica, "Informe a entidade pública do representante.");
         exigirPreenchimento(login, "Informe o login do representante.");
+        if (this.login != null && !this.login.equals(login)) {
+            versaoCredencial++;
+        }
         this.nomeCompleto = nomeCompleto;
         this.entidadePublica = entidadePublica;
         this.login = login;
     }
 
     public void desativar() {
+        if (ativa) {
+            versaoCredencial++;
+        }
         ativa = false;
     }
 
@@ -71,6 +88,50 @@ public class Representante {
         this.senhaHash = senhaHash;
         senhaTemporariaExpiraEm = expiraEm;
         trocaSenhaObrigatoria = true;
+        versaoCredencial++;
+    }
+
+    boolean conferirSenha(String senha, PasswordEncoder encoder) {
+        return encoder.matches(senha, senhaHash);
+    }
+
+    boolean loginBloqueado(Instant agora) {
+        if (bloqueadoAte != null && !agora.isBefore(bloqueadoAte)) {
+            registrarLoginCorreto();
+        }
+        return bloqueadoAte != null;
+    }
+
+    boolean temporariaValida(Instant agora) {
+        return !trocaSenhaObrigatoria || agora.isBefore(senhaTemporariaExpiraEm);
+    }
+
+    void registrarFalhaLogin(Instant agora) {
+        falhasLogin++;
+        if (falhasLogin == 5) {
+            bloqueadoAte = agora.plus(Duration.ofMinutes(15));
+        }
+    }
+
+    void registrarLoginCorreto() {
+        falhasLogin = 0;
+        bloqueadoAte = null;
+    }
+
+    AcessoRepresentante acesso() {
+        return new AcessoRepresentante(id, login, versaoCredencial, trocaSenhaObrigatoria);
+    }
+
+    boolean validarSessao(AcessoRepresentante acesso, Instant agora) {
+        return ativa && id.equals(acesso.id()) && versaoCredencial == acesso.versaoCredencial()
+                && trocaSenhaObrigatoria == acesso.trocaSenhaObrigatoria() && temporariaValida(agora);
+    }
+
+    void definirSenhaDefinitiva(String senhaHash) {
+        exigirPreenchimento(senhaHash, "Informe o hash da nova senha.");
+        this.senhaHash = senhaHash;
+        trocaSenhaObrigatoria = false;
+        versaoCredencial++;
     }
 
     private static void exigirPreenchimento(String valor, String mensagem) {
