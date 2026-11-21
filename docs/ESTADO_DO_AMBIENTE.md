@@ -1,5 +1,7 @@
 # Estado do ambiente — 16/11/2026
 
+Atualização de 21/11/2026: Pedro assumiu o desenvolvimento sem o colega. O andamento corrente está em `docs/SDD.md` e nas issues/PRs; os itens abaixo preservam as evidências da preparação inicial. Não aguardar o acesso de escrita do colega para desenvolver. Não retirar proteções da main para contornar revisão.
+
 ## Preparado
 
 - Repositório Git local com branch main e cópia preservada do documento aprovado.

@@ -1,6 +1,6 @@
 # Sistema de Alertas Comunitários
 
-Projeto acadêmico em dupla. Base de desenvolvimento em Java 21, Spring Boot 4.1.2, Spring MVC/Thymeleaf, Spring Data JPA, PostgreSQL 17 e Flyway. O Maven Wrapper fixa a ferramenta de build para os dois computadores.
+Projeto acadêmico. Em 21/11/2026, Pedro assumiu a continuidade sem o colega, com apoio de IA e subagentes. O fluxo atual é [desenvolvimento orientado por especificação](docs/SDD.md). Base em Java 21, Spring Boot 4.1.2, Spring MVC/Thymeleaf, Spring Data JPA, PostgreSQL 17 e Flyway; Maven Wrapper versionado.
 
 **Estado inicial:** infraestrutura de execução e testes pronta; os 13 requisitos funcionais ainda serão implementados. A página inicial é apenas um marcador de desenvolvimento. Os protótipos não são funcionalidades operacionais.
 

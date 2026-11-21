@@ -1,5 +1,7 @@
 # Trabalhar em dupla com IA
 
+**Atualização de 21/11/2026:** o colega não continuará. O fluxo atual é [SDD com coordenação de Pedro](SDD.md), com subagentes em worktrees separados e revisão técnica independente. As instruções abaixo documentam a organização inicial da dupla; a continuidade não depende de aguardar o colega ausente. Merge depende da autorização de Pedro e das proteções remotas, sem alegar que uma IA forneceu aprovação humana.
+
 ## Regra principal
 
 Cada pessoa tem seu clone, seu PostgreSQL e sua branch. A IA do Pedro não edita a pasta do colega e vice-versa. O GitHub compartilha código por commits e PRs; não é uma pasta em edição simultânea.
