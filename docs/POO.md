@@ -24,3 +24,7 @@ Isso acrescenta evidências de encapsulamento, abstração e substituição de d
 `Representante` encapsula contador, bloqueio, validade e versão: operações de domínio mantêm os estados coerentes sem setters públicos. O serviço coordena lock/transação e encoder; o controller não escolhe o ID da conta a partir do formulário. `AcessoRepresentante` carrega somente a identidade necessária à sessão.
 
 `RepresentanteAuthenticationProvider` implementa o contrato `AuthenticationProvider`: o Spring chama a implementação de autenticação da aplicação pelo mesmo contrato usado por outros providers. É um exemplo real de polimorfismo de integração, sem inventar hierarquia de negócio. O filtro herda `OncePerRequestFilter` para participar do ciclo HTTP; isso é herança técnica do framework, não uma hierarquia do domínio.
+
+## Gestão e auditoria
+
+A fachada `GestaoRepresentantesService` aplica autorização e transação do caso de uso; domínio/persistência não dependem de formulários. `AuditoriaService` exige transação existente para que histórico e manutenção sejam confirmados ou revertidos juntos. `RegistroAuditoria` não expõe setters e é mapeado como imutável; a interface oferece somente consulta. Os principals distintos impedem confundir a identidade do administrador com a do representante quando IDs ou logins coincidem.
