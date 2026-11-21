@@ -11,17 +11,45 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 
+@org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
 @Configuration
 public class SegurancaConfig {
     @Bean
+    @org.springframework.core.annotation.Order(1)
+    SecurityFilterChain administradorSecurityFilterChain(HttpSecurity http,
+            br.edu.alertas.gestao.AdministradorAuthenticationProvider provider,
+            br.edu.alertas.administracao.AdministradorService administradores) throws Exception {
+        return http.securityMatcher("/admin/**")
+                .authenticationManager(new org.springframework.security.authentication.ProviderManager(provider))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/admin/entrar").permitAll()
+                        .requestMatchers("/admin/representantes", "/admin/representantes/**", "/admin/auditoria").hasAuthority("ADMINISTRADOR")
+                        .anyRequest().denyAll())
+                .formLogin(form -> form.loginPage("/admin/entrar").loginProcessingUrl("/admin/entrar")
+                        .usernameParameter("login").passwordParameter("senha")
+                        .authenticationDetailsSource(request -> request.getParameter("login"))
+                        .defaultSuccessUrl("/admin/representantes", true)
+                        .failureHandler((request, response, exception) -> {
+                            request.getSession().setAttribute("LOGIN_ADMIN_TENTADO", request.getParameter("login"));
+                            response.sendRedirect(request.getContextPath() + "/admin/entrar?erro");
+                        }))
+                .logout(logout -> logout.logoutUrl("/admin/sair").logoutSuccessUrl("/admin/entrar?saiu"))
+                .requestCache(cache -> cache.disable())
+                .addFilterBefore(new br.edu.alertas.gestao.SessaoAdministradorFilter(administradores), AuthorizationFilter.class)
+                .build();
+    }
+
+
+    @Bean
+    @org.springframework.core.annotation.Order(2)
     SecurityFilterChain securityFilterChain(HttpSecurity http,
             RepresentanteAuthenticationProvider provider, AutenticacaoRepresentanteService acessoService)
             throws Exception {
-        return http.authenticationProvider(provider)
+        return http.authenticationManager(new org.springframework.security.authentication.ProviderManager(provider))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/css/**", "/actuator/health", "/entrar").permitAll()
                         .requestMatchers("/trocar-senha").hasAuthority("TROCAR_SENHA")
-                        .requestMatchers("/representante").hasAuthority("REPRESENTANTE")
+                        .requestMatchers("/representante", "/auditoria").hasAuthority("REPRESENTANTE")
                         .anyRequest().denyAll())
                 .formLogin(form -> form.loginPage("/entrar").loginProcessingUrl("/entrar")
                         .usernameParameter("login").passwordParameter("senha")

@@ -1,0 +1,18 @@
+<!doctype html><html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Representantes · Alertas comunitários</title><link rel="stylesheet" th:href="@{/css/gestao.css}"></head>
+<body class="gestao"><header class="cabecalho"><a th:href="@{/}">Alertas comunitários</a>
+<nav aria-label="Navegação do administrador"><a th:href="@{/admin/representantes}">Representantes</a><a th:href="@{/admin/auditoria}">Auditoria</a>
+<form th:action="@{/admin/sair}" method="post"><button class="secundario" type="submit">Sair</button></form></nav></header><main>
+<div class="titulo-acoes"><h1>Contas de representantes</h1><a class="botao" th:href="@{/admin/representantes/novo}">Cadastrar representante</a></div>
+<p>Cadastre e mantenha as contas individuais das entidades públicas.</p>
+<p class="mensagem" role="status" th:if="${param.sucesso != null}">Operação concluída.</p>
+<p class="mensagem erro" role="alert" th:if="${erro}" th:text="${erro}"></p>
+<form class="filtros" th:action="@{/admin/representantes}" method="get">
+<div><label for="termo">Nome ou login</label><input id="termo" name="termo" th:value="${termo}"></div>
+<div><label for="entidade">Entidade pública</label><input id="entidade" name="entidadePublica" th:value="${entidadePublica}"></div>
+<div><label for="ativa">Situação</label><select id="ativa" name="ativa"><option value="">Todas</option><option value="true" th:selected="${ativa == 'true'}">Ativa</option><option value="false" th:selected="${ativa == 'false'}">Desativada</option></select></div>
+<button type="submit">Pesquisar</button><a th:href="@{/admin/representantes}">Limpar filtros</a></form>
+<p th:if="${#lists.isEmpty(representantes)}">Nenhum representante encontrado.</p>
+<ul class="resultados"><li th:each="conta : ${representantes}"><div><h2 th:text="${conta.nomeCompleto}"></h2><p>Login: <span th:text="${conta.login}"></span></p><p><span th:text="${conta.entidadePublica}"></span> · <strong th:text="${conta.ativa ? 'Ativa' : 'Desativada'}"></strong></p></div><a class="botao secundario" th:href="@{/admin/representantes/{id}/editar(id=${conta.id})}">Gerenciar conta</a></li></ul>
+</main></body></html>
