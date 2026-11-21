@@ -99,8 +99,25 @@ class AcessoRepresentanteHttpTests {
         assertThat(navegador.get("/sair").statusCode()).isIn(403, 404, 405);
         assertThat(navegador.get("/representante").statusCode()).isEqualTo(200);
         assertThat(navegador.post("/sair", Map.of()).statusCode()).isEqualTo(403);
-        redireciona(navegador.postComCsrf("/sair", pagina.body(), Map.of()), "/entrar");
+        redireciona(navegador.postComCsrf("/sair", pagina.body(), Map.of()), "/entrar?saiu");
         redireciona(navegador.get("/representante"), "/entrar");
+    }
+
+    @Test
+    void loginHttpPreservaEspacosDaContaSemAutenticarOutroLogin() throws Exception {
+        Representante semEspacos = cadastrar();
+        Representante literal = representantes.cadastrar("Pessoa Literal", "Defesa Civil",
+                " " + semEspacos.getLogin() + " ", "temporaria-literal");
+        criados.add(literal.getId());
+        Navegador navegador = new Navegador();
+        redireciona(navegador.entrar(literal.getLogin(), "temporaria-literal"), "/trocar-senha");
+        var formulario = navegador.get("/trocar-senha");
+        redireciona(navegador.postComCsrf("/trocar-senha", formulario.body(),
+                Map.of("novaSenha", DEFINITIVA)), "/entrar?senhaAlterada");
+        assertThat(autenticacao.autenticar(literal.getLogin(), DEFINITIVA)).isPresent();
+        assertThat(autenticacao.autenticar(semEspacos.getLogin(), TEMPORARIA)).isPresent();
+        assertThat(jdbc.queryForObject("SELECT falhas_login FROM representantes WHERE id = ?",
+                Integer.class, semEspacos.getId())).isZero();
     }
 
     @Test
