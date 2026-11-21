@@ -29,7 +29,7 @@ Revisão independente de subagente é evidência de revisão técnica, não apro
 |---|---|---|
 | Base de áreas, cadastro/alteração/pesquisa | RF003 / #14 | PR #16 em revisão |
 | Base de representantes, credenciais protegidas e manutenção | RF004 / #15 | Implementação parcial e 43 testes de representantes prontos; 67 no conjunto. Aguardando revisão/integração; contrato em `specs/entregas/RF004-base.md` |
-| Autenticação de representantes e troca inicial | RF005 + RF004 | A fazer; definir contrato antes de editar segurança |
+| Autenticação de representantes e troca inicial | RF005 + RF004 / #18 | Login web, primeira troca, bloqueio e revogação implementados; 97 testes no conjunto. Contrato `specs/entregas/RF005-representantes.md`, evidências `docs/acesso/README.md`; aguardando revisão/integração |
 | Autorização do administrador, auditoria e telas protegidas | RF004 + RF013 | A fazer; sem usuário administrador fixo criado por conveniência |
 | Cadastros e acesso de moradores, ocorrências e alertas | RF001–RF013, conforme dependências | Continuam no escopo aprovado, sem funções fictícias ou mocks declarados prontos |
 

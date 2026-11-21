@@ -2,7 +2,7 @@
 
 Projeto acadêmico. Em 21/11/2026, Pedro assumiu a continuidade sem o colega, com apoio de IA e subagentes. O fluxo atual é [desenvolvimento orientado por especificação](docs/SDD.md). Base em Java 21, Spring Boot 4.1.2, Spring MVC/Thymeleaf, Spring Data JPA, PostgreSQL 17 e Flyway; Maven Wrapper versionado.
 
-**Estado da branch de desenvolvimento (21/11/2026):** infraestrutura e bases parciais de áreas e representantes implementadas, com 67 testes. Os 13 RF completos continuam em desenvolvimento. A página inicial é apenas um marcador; telas protegidas e fluxos completos ainda serão integrados. Consulte [o estado das entregas](docs/SDD.md).
+**Estado da branch de desenvolvimento (21/11/2026):** infraestrutura, bases parciais de áreas/representantes e acesso web de representantes com primeira troca implementados, com 97 testes. Os 13 RF completos continuam em desenvolvimento. A página inicial dá acesso ao login; as funções de gestão ainda serão integradas. Consulte [o estado das entregas](docs/SDD.md).
 
 ## Começar no seu computador
 
