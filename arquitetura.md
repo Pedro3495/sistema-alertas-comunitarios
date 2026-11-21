@@ -39,7 +39,7 @@ Priorizar modelos com comportamento e invariantes, evitando entidades usadas só
 
 ## Segurança e dados
 
-Na base inicial, somente `/`, `/css/**` e `/actuator/health` são públicos; as demais rotas são negadas. Não existe autenticação de moradores/representantes entregue ainda. CSRF permanece habilitado. A autorização de negócio será implementada com os RF004/RF005 e exercitada por operação, não apenas por visibilidade de botão.
+Na branch de acesso RF005, `/`, `/css/**`, `/actuator/health` e `/entrar` são públicos. O login de representantes usa provider próprio conectado ao domínio persistido. A temporária dá autoridade somente para `/trocar-senha`; a definitiva permite `/representante`. Sessões são revalidadas por conta e versão da credencial. As demais rotas seguem negadas. CSRF permanece habilitado; não existe conta padrão ou acesso de moradores implementado. Autorização administrativa e demais operações ainda serão integradas. Consulte `docs/acesso/README.md`.
 
 Credenciais do PostgreSQL ficam em `.env` local ignorado pelo Git; CI usa banco descartável próprio. Não compartilhar banco entre os computadores, não publicar uploads, dumps com dados ou credenciais. Usar apenas dados fictícios nos testes e apresentações de desenvolvimento.
 
