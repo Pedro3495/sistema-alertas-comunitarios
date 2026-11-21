@@ -18,3 +18,9 @@ O recorte de áreas não demonstra ainda herança ou polimorfismo de negócio. A
 `Representante` protege seus campos e valida o cadastro antes de alterar o estado. Senha/hash não têm getter público. `RepresentanteService` coordena operações e transações, usando `RepresentanteRepository` para persistência, `PasswordEncoder` para hash e `Clock` para tempo. São dependências com contratos reais; o teste substitui o relógio e usa o encoder real para conferir hash e validade. Veja [o guia de representantes](representantes/README.md).
 
 Isso acrescenta evidências de encapsulamento, abstração e substituição de dependências. Não foi inventada uma hierarquia de herança de domínio para preencher o critério acadêmico; essa parte permanece a demonstrar quando houver relação adequada na modelagem.
+
+## Acesso de representantes — RF005 parcial
+
+`Representante` encapsula contador, bloqueio, validade e versão: operações de domínio mantêm os estados coerentes sem setters públicos. O serviço coordena lock/transação e encoder; o controller não escolhe o ID da conta a partir do formulário. `AcessoRepresentante` carrega somente a identidade necessária à sessão.
+
+`RepresentanteAuthenticationProvider` implementa o contrato `AuthenticationProvider`: o Spring chama a implementação de autenticação da aplicação pelo mesmo contrato usado por outros providers. É um exemplo real de polimorfismo de integração, sem inventar hierarquia de negócio. O filtro herda `OncePerRequestFilter` para participar do ciclo HTTP; isso é herança técnica do framework, não uma hierarquia do domínio.

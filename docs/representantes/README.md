@@ -1,5 +1,7 @@
 # Base de representantes — RF004, tarefa #15
 
+A entrega seguinte integra o [acesso web de representantes RF005](../acesso/README.md). Os limites descritos abaixo se referem ao recorte original da base #15.
+
 Entrega parcial guiada por [contrato SDD](../../specs/entregas/RF004-base.md). O domínio, a persistência e os testes estão implementados. Autorização do administrador, autenticação e primeira troca de senha, auditoria e telas protegidas ainda serão integradas; RF004/RF005 não estão completos.
 
 ## Operações implementadas

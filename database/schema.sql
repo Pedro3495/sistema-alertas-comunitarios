@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 9bbdCTAlRcqdtbW1MJj3homJ8K1aF5y3TAL2fUfVdjT8gYp5whlp4CTchlmKEx6
+\restrict Oc42dsYew4kRLWK0VzuvxnwekcVMzMhKQg0TNIOcuQdx4adgBSBgG5ijksY8vFV
 
 -- Dumped from database version 17.10
 -- Dumped by pg_dump version 17.10
@@ -63,6 +63,11 @@ CREATE TABLE public.representantes (
     ativa boolean NOT NULL,
     troca_senha_obrigatoria boolean NOT NULL,
     senha_temporaria_expira_em timestamp with time zone NOT NULL,
+    falhas_login integer DEFAULT 0 NOT NULL,
+    bloqueado_ate timestamp with time zone,
+    versao_credencial bigint DEFAULT 0 NOT NULL,
+    CONSTRAINT ck_representantes_falhas_login CHECK (((falhas_login >= 0) AND (falhas_login <= 5))),
+    CONSTRAINT ck_representantes_versao_credencial CHECK ((versao_credencial >= 0)),
     CONSTRAINT representantes_entidade_publica_check CHECK ((entidade_publica ~ '[^[:space:]]'::text)),
     CONSTRAINT representantes_login_check CHECK ((login ~ '[^[:space:]]'::text)),
     CONSTRAINT representantes_nome_completo_check CHECK ((nome_completo ~ '[^[:space:]]'::text)),
@@ -112,4 +117,4 @@ ALTER TABLE ONLY public.representantes
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 9bbdCTAlRcqdtbW1MJj3homJ8K1aF5y3TAL2fUfVdjT8gYp5whlp4CTchlmKEx6
+\unrestrict Oc42dsYew4kRLWK0VzuvxnwekcVMzMhKQg0TNIOcuQdx4adgBSBgG5ijksY8vFV
