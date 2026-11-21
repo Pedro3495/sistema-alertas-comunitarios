@@ -247,9 +247,9 @@ class GestaoRepresentantesHttpTests {
                 "inicio", "2026-11-21T12:00", "fim", "2026-11-21T12:00"));
         var pagina = admin.get("/admin/auditoria?" + filtro);
         assertThat(pagina.statusCode()).isEqualTo(200);
-        assertThat(pagina.body()).contains("CADASTRAR_REPRESENTANTE", id.toString());
+        assertThat(pagina.body()).contains("CADASTRAR REPRESENTANTE", id.toString());
         var foraDoPeriodo = admin.get("/admin/auditoria?" + query(Map.of("inicio", "2026-11-21T12:01")));
-        assertThat(foraDoPeriodo.body()).doesNotContain("CADASTRAR_REPRESENTANTE");
+        assertThat(foraDoPeriodo.body()).doesNotContain("CADASTRAR REPRESENTANTE");
         var erroPeriodo = admin.get("/admin/auditoria?" + query(Map.of("inicio", "2026-11-22T12:00", "fim", "2026-11-21T12:00")));
         assertThat(erroPeriodo.statusCode()).isEqualTo(200);
         assertThat(erroPeriodo.body()).contains("2026-11-22T12:00", "2026-11-21T12:00", "role=\"alert\"");
@@ -261,6 +261,7 @@ class GestaoRepresentantesHttpTests {
         caminho(representante.entrar("/entrar", conta.getLogin(), TEMPORARIA), "/trocar-senha");
         assertThat(representante.get("/auditoria").statusCode()).isEqualTo(403);
         autenticacao.trocarSenha(autenticacao.autenticar(conta.getLogin(), TEMPORARIA).orElseThrow(), DEFINITIVA);
+        assertThat(representante.get("/entrar").statusCode()).isIn(302, 303);
         caminho(representante.entrar("/entrar", conta.getLogin(), DEFINITIVA), "/representante");
         assertThat(representante.get("/auditoria").statusCode()).isEqualTo(200);
         List<String> antes = acoes();
