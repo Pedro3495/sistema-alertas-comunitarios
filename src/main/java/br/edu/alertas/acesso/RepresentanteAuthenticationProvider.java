@@ -20,7 +20,8 @@ public class RepresentanteAuthenticationProvider implements AuthenticationProvid
     @Override
     public Authentication authenticate(Authentication authentication) {
         String senha = authentication.getCredentials() instanceof String valor ? valor : null;
-        var acesso = acessoService.autenticar(authentication.getName(), senha)
+        String login = authentication.getDetails() instanceof String literal ? literal : authentication.getName();
+        var acesso = acessoService.autenticar(login, senha)
                 .orElseThrow(() -> new BadCredentialsException("Não foi possível entrar."));
         String permissao = acesso.trocaSenhaObrigatoria() ? "TROCAR_SENHA" : "REPRESENTANTE";
         return UsernamePasswordAuthenticationToken.authenticated(acesso, null,
