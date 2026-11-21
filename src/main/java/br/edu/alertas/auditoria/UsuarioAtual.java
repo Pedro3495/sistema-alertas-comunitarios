@@ -17,6 +17,11 @@ public class UsuarioAtual {
         this.administradores = administradores;
         this.representantes = representantes;
     }
+    public Responsavel exigirRepresentante() {
+        var usuario = exigirConsultaAuditoria();
+        if (!usuario.tipo().equals("REPRESENTANTE")) { throw negado(); }
+        return usuario;
+    }
     public Responsavel exigirAdministrador() {
         var usuario = exigirConsultaAuditoria();
         if (!usuario.tipo().equals("ADMINISTRADOR")) { throw negado(); }
