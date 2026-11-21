@@ -25,6 +25,8 @@ public class SegurancaConfig {
                         .anyRequest().denyAll())
                 .formLogin(form -> form.loginPage("/entrar").loginProcessingUrl("/entrar")
                         .usernameParameter("login").passwordParameter("senha")
+                        // O filtro padrão remove espaços do username; o login cadastrado é literal.
+                        .authenticationDetailsSource(request -> request.getParameter("login"))
                         .successHandler((request, response, authentication) -> {
                             request.getSession().removeAttribute(AcessoController.LOGIN_TENTADO);
                             var acesso = (AcessoRepresentante) authentication.getPrincipal();
