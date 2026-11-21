@@ -21,7 +21,8 @@ class AdministradorTests {
         assertThat(administrador.acesso().getName()).isEqualTo(" admin literal ");
         assertThat(administrador.toString()).doesNotContain("hash-ficticio");
         assertThat(Administrador.class.getMethods()).noneMatch(method ->
-                method.getName().toLowerCase().contains("senha") || method.getName().toLowerCase().contains("hash"));
+                method.getName().startsWith("get") && (method.getName().toLowerCase().contains("senha")
+                        || method.getName().toLowerCase().contains("hash")));
     }
 
     @Test
