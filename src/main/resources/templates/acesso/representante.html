@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acesso do representante · Alertas comunitários</title>
+  <link rel="stylesheet" th:href="@{/css/acesso.css}">
+</head>
+<body>
+<header><a th:href="@{/}">Alertas comunitários</a></header>
+<main id="conteudo">
+  <h1>Você entrou na sua conta</h1>
+  <p>Login: <strong class="identidade" th:text="${login}"></strong></p>
+  <p class="introducao">As funções de gestão de ocorrências ainda estão em desenvolvimento.</p>
+  <form th:action="@{/sair}" method="post">
+    <button class="secundario" type="submit">Sair da conta</button>
+  </form>
+</main>
+</body>
+</html>
