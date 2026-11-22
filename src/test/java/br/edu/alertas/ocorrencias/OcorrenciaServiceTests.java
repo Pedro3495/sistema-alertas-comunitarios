@@ -262,13 +262,13 @@ class OcorrenciaServiceTests extends OcorrenciasFixtures {
     }
 
     @Test
-    void consultaAusenteNaoMutaENaoExpoeOperacoesDeAlteracaoOuExclusao() {
+    void consultaAusenteNaoMutaENaoExpoeOperacoesDeExclusaoOuSubstituicao() {
         var salvo = service.registrar(dados(UUID.randomUUID()));
         assertThatThrownBy(() -> service.buscar(UUID.randomUUID())).isInstanceOf(EntityNotFoundException.class);
         assertThatThrownBy(() -> service.foto(UUID.randomUUID(), 1)).isInstanceOf(EntityNotFoundException.class);
         for (int ordem : List.of(0, 2, 5)) assertThatThrownBy(() -> service.foto(salvo.getProtocolo(), ordem)).isInstanceOf(EntityNotFoundException.class);
         assertThat(Arrays.stream(OcorrenciaService.class.getMethods()).map(m -> m.getName()))
-                .noneMatch(nome -> nome.matches("(?i)(excluir|remover|deletar|alterar|substituir).*"));
+                .noneMatch(nome -> nome.matches("(?i)(excluir|remover|deletar|substituir).*"));
         assertThat(quantidadeFotos()).isEqualTo(1);
         assertThat(acoes()).hasSize(1);
     }

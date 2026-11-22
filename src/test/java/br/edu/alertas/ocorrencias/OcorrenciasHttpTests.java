@@ -331,6 +331,52 @@ class OcorrenciasHttpTests extends OcorrenciasFixtures {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM comunicados_ocorrencia c JOIN ocorrencias o ON o.id = c.ocorrencia_id WHERE o.protocolo = ?", Long.class, p)).isEqualTo(2);
     }
 
+    // RF011: alteração por formulário real com CSRF; aviso ao morador que recebeu o alerta, sem a justificativa interna.
+    @Test
+    void representanteAlteraCamposPermitidosEMoradorRecebeAvisoSemJustificativa() throws Exception {
+        String cpf = novoMorador(area);
+        var p = service.registrar(dados(UUID.randomUUID())).getProtocolo();
+        String rota = "/ocorrencias/" + p + "/alteracao";
+        var rep = autenticado();
+        var tela = rep.get("/ocorrencias/" + p).body();
+        assertThat(tela).contains("Alterar ocorrência", "Nenhuma alteração registrada.", "Ponte fictícia");
+        String token = csrf(tela);
+        Map<String, String> campos = new java.util.HashMap<>(Map.of("_csrf", token, "tipo", "DESASTRE", "descricao", "Descrição fictícia",
+                "localizacao", "Rua corrigida", "areaId", String.valueOf(area), "justificativa", "Justificativa interna fictícia",
+                "orientacoes", "Use a rua alta"));
+
+        var semCsrf = new java.util.HashMap<>(campos);
+        semCsrf.remove("_csrf");
+        assertThat(rep.form("POST", rota, semCsrf).statusCode()).isEqualTo(403);
+        var semJustificativa = new java.util.HashMap<>(campos);
+        semJustificativa.put("justificativa", " ");
+        var erro = rep.form("POST", rota, semJustificativa);
+        assertThat(erro.statusCode()).isEqualTo(400);
+        assertThat(erro.body()).contains("Informe a justificativa da alteração.", "Rua corrigida");
+        assertThat(rep.form("POST", "/ocorrencias/" + UUID.randomUUID() + "/alteracao", campos).statusCode()).isEqualTo(404);
+
+        service.verificar(p, SituacaoOcorrencia.CONFIRMADA, "Vistoria fictícia");
+        rep.form("POST", "/ocorrencias/" + p + "/alertas", Map.of("_csrf", token, "titulo", "Alerta fictício", "mensagem", "M", "orientacoes", "O"));
+        assertThat(rep.get("/ocorrencias/" + p).body()).contains("Alerta enviado a todos os destinatários."); // consome o aviso da emissão
+        var ok = rep.form("POST", rota, campos);
+        assertThat(ok.statusCode()).isEqualTo(302);
+        assertThat(rep.get("/ocorrencias/" + p).body()).contains("Alteração salva.", "Localização: de &quot;Ponte fictícia&quot; para &quot;Rua corrigida&quot;.",
+                "Justificativa: Justificativa interna fictícia");
+        assertThat(acoes()).contains("ALTERAR_OCORRENCIA #" + p + ": Localização: de \"Ponte fictícia\" para \"Rua corrigida\".");
+
+        var vizinho = moradorAutenticado(cpf);
+        assertThat(vizinho.get("/morador/alertas").body()).contains("Aviso de alteração: Alteração da ocorrência " + p,
+                "Rua corrigida", "Use a rua alta").doesNotContain("Justificativa interna fictícia");
+        var detalhe = vizinho.get("/morador/ocorrencias/" + p).body();
+        assertThat(detalhe).contains("Rua corrigida").doesNotContain("Alterar ocorrência", "Justificativa interna fictícia");
+        var tentativa = new java.util.HashMap<>(campos);
+        tentativa.put("_csrf", csrf(vizinho.get("/morador/ocorrencias/novo").body()));
+        tentativa.put("localizacao", "Morador tentou");
+        assertThat(vizinho.form("POST", rota, tentativa).statusCode()).isIn(302, 403);
+        assertThat(service.buscar(p).getLocalizacao()).isEqualTo("Rua corrigida");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM fotos_ocorrencia f JOIN ocorrencias o ON o.id = f.ocorrencia_id WHERE o.protocolo = ?", Long.class, p)).isEqualTo(1);
+    }
+
     private Navegador moradorAutenticado(String cpf) throws Exception {
         var navegador = new Navegador();
         navegador.destino = "/morador/ocorrencias";

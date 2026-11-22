@@ -34,11 +34,7 @@ public class Ocorrencia {
     // Exatamente um autor: representante ou morador (V13).
     Ocorrencia(DadosOcorrencia dados, AreaRisco area, Representante representante, Morador morador, Instant agora) {
         if (dados.envioId() == null) { throw new ErroOcorrencia("envioId", "Reabra o formulário para preparar o envio."); }
-        if (dados.tipo() == null) { throw new ErroOcorrencia("tipo", "Selecione o tipo de ocorrência."); }
-        if (dados.tipo() == TipoOcorrencia.OUTROS) { exigir(dados.especificacaoOutros(), "especificacaoOutros", "Especifique o tipo Outros."); }
-        exigir(dados.descricao(), "descricao", "Descreva o que ocorreu.");
-        exigir(dados.localizacao(), "localizacao", "Informe o endereço ou ponto de referência do fato.");
-        if (area == null) { throw new ErroOcorrencia("areaId", "Selecione uma área de risco cadastrada."); }
+        validar(dados.tipo(), dados.especificacaoOutros(), dados.descricao(), dados.localizacao(), area);
         if (dados.fotos() == null || dados.fotos().isEmpty() || dados.fotos().size() > 4) {
             throw new ErroOcorrencia("fotos", "Escolha de uma a quatro fotos como evidências.");
         }
@@ -65,6 +61,40 @@ public class Ocorrencia {
         exigir(justificativa, "justificativa", "Informe a justificativa da verificação.");
         situacao = decisao;
         return new VerificacaoOcorrencia(this, decisao, justificativa.strip(), responsavel, agora);
+    }
+
+    /**
+     * RF011 regras 1, 5 e 6: só tipo, especificação de Outros, descrição, localização e área, com as validações do registro,
+     * justificativa obrigatória e antes do encerramento. Fotos, autor e protocolo não mudam. Retorna o resumo por campo alterado.
+     */
+    AlteracaoOcorrencia alterar(TipoOcorrencia novoTipo, String novaEspecificacao, String novaDescricao, String novaLocalizacao,
+            AreaRisco novaArea, String justificativa, Representante responsavel, Instant agora) {
+        if (situacao == SituacaoOcorrencia.ENCERRADA) { throw new ErroOcorrencia("situacao", "Ocorrência encerrada fica disponível apenas para consulta."); }
+        validar(novoTipo, novaEspecificacao, novaDescricao, novaLocalizacao, novaArea);
+        exigir(justificativa, "justificativa", "Informe a justificativa da alteração.");
+        String especificacao = novoTipo == TipoOcorrencia.OUTROS ? novaEspecificacao : null;
+        List<String> mudancas = new ArrayList<>();
+        mudar(mudancas, "Tipo", tipo.getRotulo(), novoTipo.getRotulo());
+        mudar(mudancas, "Especificação de Outros", especificacaoOutros, especificacao);
+        mudar(mudancas, "Descrição", descricao, novaDescricao);
+        mudar(mudancas, "Localização", localizacao, novaLocalizacao);
+        if (!area.getId().equals(novaArea.getId())) { mudar(mudancas, "Área de risco", area.getNome(), novaArea.getNome()); }
+        if (mudancas.isEmpty()) { throw new ErroOcorrencia("alteracao", "Altere ao menos um dos campos permitidos."); }
+        tipo = novoTipo; especificacaoOutros = especificacao; descricao = novaDescricao; localizacao = novaLocalizacao; area = novaArea;
+        return new AlteracaoOcorrencia(this, justificativa.strip(), String.join(" ", mudancas), responsavel, agora);
+    }
+
+    private static void mudar(List<String> mudancas, String campo, String anterior, String novo) {
+        if (java.util.Objects.equals(anterior, novo)) { return; }
+        mudancas.add(campo + ": de \"" + (anterior == null ? "" : anterior) + "\" para \"" + (novo == null ? "" : novo) + "\".");
+    }
+
+    private static void validar(TipoOcorrencia tipo, String especificacaoOutros, String descricao, String localizacao, AreaRisco area) {
+        if (tipo == null) { throw new ErroOcorrencia("tipo", "Selecione o tipo de ocorrência."); }
+        if (tipo == TipoOcorrencia.OUTROS) { exigir(especificacaoOutros, "especificacaoOutros", "Especifique o tipo Outros."); }
+        exigir(descricao, "descricao", "Descreva o que ocorreu.");
+        exigir(localizacao, "localizacao", "Informe o endereço ou ponto de referência do fato.");
+        if (area == null) { throw new ErroOcorrencia("areaId", "Selecione uma área de risco cadastrada."); }
     }
 
     private static void exigir(String valor, String campo, String mensagem) {

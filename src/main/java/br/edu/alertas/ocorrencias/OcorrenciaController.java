@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
@@ -142,6 +143,15 @@ public class OcorrenciaController {
             model.addAttribute("rascunhoChave", "REPRESENTANTE:" + ator.id());
         }
         model.addAttribute("verificacoes", service.verificacoes(protocolo));
+        model.addAttribute("alteracoes", service.alteracoes(protocolo));
+        model.addAttribute("areas", areas.findAll(Sort.by("nome")));
+        model.addAttribute("tipos", TipoOcorrencia.values());
+        if (!model.containsAttribute("alteracao")) { // RF011: o formulário abre com os valores atuais
+            model.addAttribute("alteracao", Map.of("tipo", ocorrencia.getTipo().name(),
+                    "especificacaoOutros", Objects.toString(ocorrencia.getEspecificacaoOutros(), ""),
+                    "descricao", ocorrencia.getDescricao(), "localizacao", ocorrencia.getLocalizacao(),
+                    "areaId", ocorrencia.getAreaId().toString(), "justificativa", "", "orientacoes", ""));
+        }
         model.addAttribute("comunicados", alertas.daOcorrencia(protocolo));
         return "ocorrencias/detalhe";
     }
@@ -167,6 +177,33 @@ public class OcorrenciaController {
             return detalhe(protocolo, model);
         }
         redirect.addFlashAttribute("verificada", true);
+        return "redirect:/ocorrencias/" + protocolo;
+    }
+
+    // RF011: formulário HTML com CSRF, só para representantes; erro volta à tela com 400 e os valores digitados.
+    @PostMapping("/ocorrencias/{protocolo}/alteracao")
+    String alterar(@PathVariable UUID protocolo, @RequestParam(defaultValue = "") String tipo,
+            @RequestParam(defaultValue = "") String especificacaoOutros, @RequestParam(defaultValue = "") String descricao,
+            @RequestParam(defaultValue = "") String localizacao, @RequestParam(defaultValue = "") String areaId,
+            @RequestParam(defaultValue = "") String justificativa, @RequestParam(defaultValue = "") String orientacoes,
+            Model model, HttpServletResponse response, RedirectAttributes redirect) {
+        usuarios.exigirRepresentante();
+        TipoOcorrencia tipoEscolhido = null;
+        Long area = null;
+        try { tipoEscolhido = TipoOcorrencia.valueOf(tipo); } catch (IllegalArgumentException ignorada) { } // o domínio rejeita nulo
+        try { area = Long.valueOf(areaId); } catch (NumberFormatException ignorada) { }
+        try {
+            service.alterar(protocolo, tipoEscolhido, especificacaoOutros, descricao, localizacao, area, justificativa, orientacoes);
+        } catch (EntityNotFoundException exception) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        } catch (ErroOcorrencia exception) {
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            model.addAttribute("erroAlteracao", exception);
+            model.addAttribute("alteracao", Map.of("tipo", tipo, "especificacaoOutros", especificacaoOutros, "descricao", descricao,
+                    "localizacao", localizacao, "areaId", areaId, "justificativa", justificativa, "orientacoes", orientacoes));
+            return detalhe(protocolo, model);
+        }
+        redirect.addFlashAttribute("alterada", true);
         return "redirect:/ocorrencias/" + protocolo;
     }
 
