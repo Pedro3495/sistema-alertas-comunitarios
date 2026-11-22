@@ -100,12 +100,71 @@ const resposta = (status, body) => ({ status, ok: status === 200, headers: { get
 test('formatos aprovados são identificados pelos bytes; MIME e extensão não autorizam arquivo', async () => {
   assert.equal(await tipoImagem(jpeg()), 'image/jpeg');
   assert.equal(await tipoImagem(new Blob([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])])), 'image/png');
-  for (const marca of ['heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1']) {
+  for (const marca of ['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'hevm', 'hevs', 'mif1', 'msf1']) {
     assert.match(await tipoImagem(new Blob([new Uint8Array([0, 0, 0, 20]), 'ftyp', marca, new Uint8Array(8)])), /^image\/hei/);
   }
   await assert.rejects(tipoImagem(new Blob(['arquivo inválido'], { type: 'image/jpeg' })), /Formato não aceito/);
   await assert.rejects(prepararFotos([]), /uma a quatro/);
   await assert.rejects(prepararFotos(Array(5).fill(jpeg())), /uma a quatro/);
+});
+
+function ftyp(principal, compativeis = [], { estendido = false, versao = '\0\0\0\0' } = {}) {
+  const cabecalho = estendido ? 16 : 8;
+  const bytes = new Uint8Array(cabecalho + 8 + compativeis.length * 4);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(0, estendido ? 1 : bytes.length);
+  bytes.set(Buffer.from('ftyp'), 4);
+  if (estendido) view.setBigUint64(8, BigInt(bytes.length));
+  bytes.set(Buffer.from(principal + versao + compativeis.join('')), cabecalho);
+  return bytes;
+}
+
+test('HEIC/HEIF reconhece todas as marcas e offsets ftyp normais e estendidos', async () => {
+  for (const estendido of [false, true]) {
+    for (const marca of ['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'hevm', 'hevs']) {
+      assert.equal(await tipoImagem(new Blob([ftyp(marca, [], { estendido })])), 'image/heic');
+      assert.equal(await tipoImagem(new Blob([ftyp('mif1', [marca], { estendido })])), 'image/heic');
+    }
+    for (const marca of ['mif1', 'msf1']) {
+      assert.equal(await tipoImagem(new Blob([ftyp(marca, [], { estendido })])), 'image/heif');
+    }
+    assert.equal(await tipoImagem(new Blob([ftyp('mif1', [], { estendido, versao: 'heic' })])), 'image/heif');
+    await assert.rejects(tipoImagem(new Blob([ftyp('xxxx', [], { estendido, versao: 'mif1' })])), /Formato não aceito/);
+    // Marca no fim de uma caixa maior que o antigo prefixo fixo de 256 bytes.
+    assert.equal(await tipoImagem(new Blob([ftyp('xxxx', [...Array(70).fill('xxxx'), 'heim'], { estendido })])), 'image/heic');
+  }
+});
+
+test('AVIF/AVIS recusado em qualquer marca, mesmo compatível com mif1 ou heic', async () => {
+  for (const estendido of [false, true]) {
+    for (const marca of ['avif', 'avis']) {
+      for (const [principal, compativeis] of [[marca, ['mif1']], ['mif1', [marca]], ['heic', [marca]], ['mif1', ['heic', marca]], ['mif1', [...Array(70).fill('xxxx'), marca]]]) {
+        await assert.rejects(tipoImagem(new Blob([ftyp(principal, compativeis, { estendido })], { type: 'image/heic' })), /Formato não aceito/);
+      }
+    }
+  }
+});
+
+test('ftyp recusa comprimentos inválidos ou truncados e ignora marcas fora da caixa', async () => {
+  for (const estendido of [false, true]) {
+    const valido = ftyp('heic', ['mif1'], { estendido });
+    for (let tamanho = 0; tamanho < valido.length; tamanho++) {
+      await assert.rejects(tipoImagem(new Blob([valido.slice(0, tamanho)])), /Formato não aceito/);
+    }
+    const desalinhado = ftyp('heic', [], { estendido });
+    const view = new DataView(desalinhado.buffer);
+    if (estendido) view.setBigUint64(8, BigInt(desalinhado.length - 1));
+    else view.setUint32(0, desalinhado.length - 1);
+    await assert.rejects(tipoImagem(new Blob([desalinhado])), /Formato não aceito/);
+    await assert.rejects(tipoImagem(new Blob([ftyp('xxxx', [], { estendido }), 'heic'])), /Formato não aceito/);
+    assert.equal(await tipoImagem(new Blob([ftyp('heic', [], { estendido }), 'avif'])), 'image/heic');
+  }
+  const enorme = ftyp('heic', [], { estendido: true });
+  new DataView(enorme.buffer).setBigUint64(8, 2n ** 63n);
+  await assert.rejects(tipoImagem(new Blob([enorme])), /Formato não aceito/);
+  const ateFim = ftyp('heic');
+  new DataView(ateFim.buffer).setUint32(0, 0);
+  assert.equal(await tipoImagem(new Blob([ateFim])), 'image/heic');
 });
 
 test('redução automática acima de 5 MB, sem reduzir foto no limite; falha recusa arquivo', async () => {

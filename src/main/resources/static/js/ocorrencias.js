@@ -52,19 +52,37 @@
   }
 
   async function tipoImagem(blob) {
-    const bytes = new Uint8Array(await blob.slice(0, 256).arrayBuffer());
+    const bytes = new Uint8Array(await blob.slice(0, 16).arrayBuffer());
     if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
     if ([137, 80, 78, 71, 13, 10, 26, 10].every((b, i) => bytes[i] === b)) return 'image/png';
     const texto = (inicio) => String.fromCharCode(...bytes.slice(inicio, inicio + 4));
+    const erroFormato = 'Formato não aceito. Selecione uma foto JPG, JPEG, PNG, HEIC ou HEIF.';
     if (texto(4) === 'ftyp') {
-      const tamanho = new DataView(bytes.buffer).getUint32(0);
-      for (let i = 8; i + 4 <= Math.min(tamanho, bytes.length); i += 4) {
-        if (i === 12) continue; // versão secundária, não uma marca de formato
-        if (['heic', 'heix', 'hevc', 'hevx'].includes(texto(i))) return 'image/heic';
-        if (['mif1', 'msf1'].includes(texto(i))) return 'image/heif';
+      const view = new DataView(bytes.buffer);
+      let tamanho = view.getUint32(0);
+      let cabecalho = 8;
+      if (tamanho === 1) {
+        if (bytes.length < 16) throw new Error(erroFormato);
+        const estendido = view.getBigUint64(8);
+        if (estendido > BigInt(blob.size)) throw new Error(erroFormato);
+        tamanho = Number(estendido);
+        cabecalho = 16;
+      } else if (tamanho === 0) tamanho = blob.size;
+      if (tamanho < cabecalho + 8 || tamanho % 4 !== 0 || tamanho > blob.size) throw new Error(erroFormato);
+      const marcas = new Uint8Array(await blob.slice(cabecalho, tamanho).arrayBuffer());
+      let heic = false;
+      let heif = false;
+      for (let i = 0; i + 4 <= marcas.length; i += 4) {
+        if (i === 4) continue; // versão secundária, não uma marca de formato
+        const marca = String.fromCharCode(...marcas.slice(i, i + 4));
+        if (['avif', 'avis'].includes(marca)) throw new Error(erroFormato);
+        heic ||= ['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'hevm', 'hevs'].includes(marca);
+        heif ||= ['mif1', 'msf1'].includes(marca);
       }
+      if (heic) return 'image/heic';
+      if (heif) return 'image/heif';
     }
-    throw new Error('Formato não aceito. Selecione uma foto JPG, JPEG, PNG, HEIC ou HEIF.');
+    throw new Error(erroFormato);
   }
 
   function carregarImagem(blob) {
