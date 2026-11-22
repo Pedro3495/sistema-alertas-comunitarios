@@ -21,7 +21,7 @@ public class AreaRiscoService {
 
     @Transactional
     public AreaRisco alterar(Long id, String nome, String descricaoLocalizacaoLimites) {
-        AreaRisco area = repository.findById(id)
+        AreaRisco area = repository.buscarComBloqueio(id)
                 .orElseThrow(() -> new EntityNotFoundException("Área de risco não encontrada."));
         area.alterarDefinicao(nome, descricaoLocalizacaoLimites);
         return area;
@@ -38,7 +38,9 @@ public class AreaRiscoService {
 
     @Transactional
     public void excluir(Long id) {
-        repository.delete(buscar(id));
+        AreaRisco area = repository.buscarComBloqueio(id)
+                .orElseThrow(() -> new EntityNotFoundException("Área de risco não encontrada."));
+        repository.delete(area);
         repository.flush();
     }
 
