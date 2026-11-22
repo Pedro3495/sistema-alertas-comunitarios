@@ -57,13 +57,13 @@ class OcorrenciaMoradorServiceTests extends OcorrenciasFixtures {
     }
 
     @Test
-    void perfisNaoSeMisturamEMoradorSoVeOProprioRegistro() {
+    void perfisNaoSeMisturamEMoradorNaoVeRegistroDeOutraArea() {
         var deRepresentante = service.registrar(dados(UUID.randomUUID()));
         var semResidenciaPropria = new DadosOcorrencia(UUID.randomUUID(), TipoOcorrencia.OBRA, null, "D", "L", area, List.of(imagem("png")));
         assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(() -> service.registrarPorMorador(semResidenciaPropria));
 
-        String cpfOutro = novoMorador(area);
-        entrarComoMorador(novoMorador(area));
+        String cpfOutro = novoMorador(novaArea()); // outra área: RF008 regra 1 libera só a própria área
+        entrarComoMorador(novoMorador(novaArea()));
         var propria = service.registrarPorMorador(semResidenciaPropria);
         assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(() -> service.registrar(dados(UUID.randomUUID())));
         assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(() -> service.buscar(propria.getProtocolo()));

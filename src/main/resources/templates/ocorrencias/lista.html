@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ocorrências · Alertas comunitários</title>
+  <link rel="stylesheet" th:href="@{/css/ocorrencias.css}">
+</head>
+<body class="gestao" th:with="base=${morador} ? '/morador' : ''">
+<header class="cabecalho"><a th:href="${morador} ? @{/morador} : @{/representante}">Alertas comunitários</a>
+  <nav th:aria-label="${morador} ? 'Navegação do morador' : 'Navegação do representante'"><a th:href="@{__${base}__/ocorrencias/novo}">Registrar ocorrência</a>
+    <form th:action="@{__${base}__/sair}" method="post"><button class="secundario" type="submit">Sair</button></form>
+  </nav>
+</header>
+<main>
+  <h1>Ocorrências</h1>
+  <p th:if="${morador}">Acompanhe seus relatos e os relatos da área de risco da sua residência.</p>
+  <p th:unless="${morador}">Consulte as ocorrências de todas as áreas de risco.</p>
+  <p class="mensagem erro" role="alert" th:if="${erro}" th:text="${erro}"></p>
+  <form class="filtros" th:action="@{__${base}__/ocorrencias}" method="get">
+    <div><label for="protocolo">Protocolo</label><input id="protocolo" name="protocolo" th:value="${protocolo}"></div>
+    <div><label for="tipo">Tipo</label><select id="tipo" name="tipo"><option value="">Todos os tipos</option>
+      <option th:each="t : ${tipos}" th:value="${t.name()}" th:text="${t.rotulo}" th:selected="${t == tipo}"></option></select></div>
+    <div><label for="situacao">Situação</label><select id="situacao" name="situacao"><option value="">Todas as situações</option>
+      <option th:each="s : ${situacoes}" th:value="${s.name()}" th:text="${s.rotulo}" th:selected="${s == situacao}"></option></select></div>
+    <div th:unless="${morador}"><label for="areaId">Área de risco</label><select id="areaId" name="areaId"><option value="">Todas as áreas</option>
+      <option th:each="area : ${areas}" th:value="${area.id}" th:text="${area.nome}" th:selected="${area.id == areaId}"></option></select></div>
+    <button type="submit">Pesquisar</button><a th:href="@{__${base}__/ocorrencias}">Limpar filtros</a>
+  </form>
+  <p th:if="${#lists.isEmpty(ocorrencias)}">Nenhuma ocorrência encontrada.</p>
+  <ul class="resultados">
+    <li th:each="o : ${ocorrencias}"><div>
+      <h2 th:text="${o.tipo.rotulo}"></h2>
+      <p>Situação: <strong th:text="${o.situacao.rotulo}"></strong></p>
+      <p class="descricao" th:text="${o.localizacao}"></p>
+      <p>Área de risco: <span th:text="${o.areaNome}"></span> · <time th:datetime="${o.registradaEm}" th:text="${#temporals.format(o.registradaEm, 'dd/MM/yyyy HH:mm', 'America/Sao_Paulo')}"></time></p>
+      <p>Protocolo: <span th:text="${o.protocolo}"></span></p>
+    </div><a class="botao secundario" th:href="@{__${base}__/ocorrencias/{p}(p=${o.protocolo})}">Ver ocorrência</a></li>
+  </ul>
+  <p class="voltar"><a th:href="${morador} ? @{/morador} : @{/representante}">Voltar para início</a></p>
+</main>
+</body>
+</html>
