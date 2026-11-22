@@ -22,6 +22,7 @@ public class SegurancaConfig {
         return http.securityMatcher("/admin/**")
                 .authenticationManager(new org.springframework.security.authentication.ProviderManager(provider))
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
                         .requestMatchers("/admin/entrar").permitAll()
                         .requestMatchers("/admin/representantes", "/admin/representantes/**", "/admin/auditoria").hasAuthority("ADMINISTRADOR")
                         .anyRequest().denyAll())
@@ -47,9 +48,10 @@ public class SegurancaConfig {
             throws Exception {
         return http.authenticationManager(new org.springframework.security.authentication.ProviderManager(provider))
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
                         .requestMatchers("/", "/css/**", "/actuator/health", "/entrar").permitAll()
                         .requestMatchers("/trocar-senha").hasAuthority("TROCAR_SENHA")
-                        .requestMatchers("/representante", "/auditoria").hasAuthority("REPRESENTANTE")
+                        .requestMatchers("/representante", "/auditoria", "/areas", "/areas/**", "/residencias", "/residencias/**").hasAuthority("REPRESENTANTE")
                         .anyRequest().denyAll())
                 .formLogin(form -> form.loginPage("/entrar").loginProcessingUrl("/entrar")
                         .usernameParameter("login").passwordParameter("senha")
