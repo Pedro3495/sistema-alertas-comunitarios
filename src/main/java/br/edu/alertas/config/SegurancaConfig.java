@@ -49,9 +49,9 @@ public class SegurancaConfig {
         return http.authenticationManager(new org.springframework.security.authentication.ProviderManager(provider))
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
-                        .requestMatchers("/", "/css/**", "/actuator/health", "/entrar").permitAll()
+                        .requestMatchers("/", "/css/**", "/js/ocorrencias.js", "/actuator/health", "/entrar").permitAll()
                         .requestMatchers("/trocar-senha").hasAuthority("TROCAR_SENHA")
-                        .requestMatchers("/representante", "/auditoria", "/areas", "/areas/**", "/residencias", "/residencias/**").hasAuthority("REPRESENTANTE")
+                        .requestMatchers("/representante", "/auditoria", "/areas", "/areas/**", "/residencias", "/residencias/**", "/ocorrencias", "/ocorrencias/**").hasAuthority("REPRESENTANTE")
                         .anyRequest().denyAll())
                 .formLogin(form -> form.loginPage("/entrar").loginProcessingUrl("/entrar")
                         .usernameParameter("login").passwordParameter("senha")
