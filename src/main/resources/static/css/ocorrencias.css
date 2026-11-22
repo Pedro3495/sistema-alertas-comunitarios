@@ -3,7 +3,7 @@
 fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .somente-leitor { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 select[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: #a51c25; }
-.fotos-selecionadas { padding-left: 24px; line-height: 1.6; overflow-wrap: anywhere; }
+.fotos-selecionadas { list-style: none; padding-left: 0; line-height: 1.6; overflow-wrap: anywhere; }
 .protocolo { max-width: 680px; }
 .protocolo p { font-size: 1.2rem; font-weight: 650; overflow-wrap: anywhere; }
 .dados-ocorrencia { max-width: 680px; margin: 28px 0; }

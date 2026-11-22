@@ -237,6 +237,9 @@ test('rede falha antes/depois do commit: retry manual mantém envioId e fotos, J
   assert.equal(tentativas, 0);
   await enviar(p);
   assert.match(p.elementos['envio-erro'].textContent, /conexão falhou/);
+  assert.doesNotMatch(p.elementos['rascunho-status'].textContent, /Enviando ocorrência/);
+  assert.match(p.elementos['rascunho-status'].textContent, /não foi concluído.*Revise.*manualmente/);
+  assert.equal(p.elementos.revisao.checked, false);
   const id = a.registros.get('REPRESENTANTE:1').envioId;
   p = pagina('REPRESENTANTE:1', a, fetch);
   await iniciarFormulario(p.form);
@@ -247,6 +250,8 @@ test('rede falha antes/depois do commit: retry manual mantém envioId e fotos, J
   assert.equal(tentativas, 1);
   p.elementos.revisao.checked = true;
   await enviar(p);
+  assert.doesNotMatch(p.elementos['rascunho-status'].textContent, /Enviando ocorrência/);
+  assert.match(p.elementos['rascunho-status'].textContent, /não foi concluído.*Revise.*manualmente/);
   p.elementos.revisao.checked = true;
   await enviar(p);
   assert.equal(tentativas, 3);
@@ -280,6 +285,9 @@ test('erro junto ao campo, sessão vencida e armazenamento cheio preservam dados
   p.elementos.revisao.checked = true;
   await enviar(p);
   assert.match(p.elementos['envio-erro'].textContent, /sessão venceu/);
+  assert.doesNotMatch(p.elementos['rascunho-status'].textContent, /Enviando ocorrência/);
+  assert.match(p.elementos['rascunho-status'].textContent, /não foi concluído.*Revise.*manualmente/);
+  assert.equal(p.elementos.revisao.checked, false);
   assert.ok(a.registros.has('REPRESENTANTE:1'));
   a.banco.falhar = true;
   p.elementos.revisao.checked = true;

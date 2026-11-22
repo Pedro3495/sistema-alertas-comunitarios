@@ -312,6 +312,7 @@
         }
         window.location.assign(retorno.detalheUrl);
       } catch (erro) {
+        status.textContent = 'O envio não foi concluído. Revise os dados e as fotos para reenviar manualmente.';
         erroGeral(erro instanceof TypeError
           ? 'A conexão falhou e o envio não foi confirmado. Os dados e as fotos foram preservados. Quando a conexão voltar, revise e tente novamente.'
           : erro.message || 'Não foi possível concluir o envio. Mantenha esta página aberta e tente novamente.');
