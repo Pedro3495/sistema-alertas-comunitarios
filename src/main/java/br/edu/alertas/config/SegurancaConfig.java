@@ -56,7 +56,7 @@ public class SegurancaConfig {
                         .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
                         .requestMatchers("/morador/entrar", "/morador/recuperar", "/morador/recuperar/codigo").permitAll()
                         .requestMatchers("/morador/trocar-senha").hasAuthority("MORADOR_TROCAR_SENHA")
-                        .requestMatchers("/morador", "/morador/ocorrencias", "/morador/ocorrencias/**").hasAuthority("MORADOR")
+                        .requestMatchers("/morador", "/morador/ocorrencias", "/morador/ocorrencias/**", "/morador/alertas").hasAuthority("MORADOR")
                         .anyRequest().denyAll())
                 .formLogin(form -> form.loginPage("/morador/entrar").loginProcessingUrl("/morador/entrar")
                         .usernameParameter("cpf").passwordParameter("senha")

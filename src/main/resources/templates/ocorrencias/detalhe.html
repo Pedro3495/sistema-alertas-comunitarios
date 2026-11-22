@@ -59,7 +59,10 @@
         <label for="justificativa">Justificativa interna *</label>
         <textarea id="justificativa" name="justificativa" required th:text="${justificativa}"
                   th:attr="aria-invalid=${erroVerificacao != null and erroVerificacao.campo == 'justificativa'}"></textarea>
+        <label for="orientacoes-verificacao">Orientações atualizadas (opcional)</label>
+        <textarea id="orientacoes-verificacao" name="orientacoes" th:text="${orientacoesVerificacao}"></textarea>
         <p class="orientacao">Confirmar não envia alerta. A emissão exige outra ação explícita.</p>
+        <p class="orientacao">Se a ocorrência já tiver alerta, quem o recebeu ganha um aviso de alteração com a nova situação e as orientações, sem a justificativa.</p>
         <button type="submit">Salvar verificação</button>
       </form>
     </th:block>
@@ -70,6 +73,41 @@
         <strong th:text="${v.situacao}"></strong> · <span th:text="${v.representanteNome}"></span> ·
         <time th:datetime="${v.verificadaEm}" th:text="${v.verificadaEm}"></time>
         <p class="descricao" th:text="${v.justificativa}"></p>
+      </li>
+    </ul>
+  </section>
+  <!--/* RF010: emissão manual, só de ocorrência Confirmada; alertas e avisos ficam preservados, sem edição nem exclusão. */-->
+  <section th:unless="${morador}" aria-labelledby="titulo-alertas">
+    <h2 id="titulo-alertas">Alertas</h2>
+    <p class="orientacao">Envio simulado: nenhuma mensagem real de SMS ou WhatsApp é enviada nesta versão.</p>
+    <p class="mensagem" role="status" th:if="${envioAlerta != null and envioAlerta == 0}">Alerta enviado a todos os destinatários.</p>
+    <p class="mensagem erro" role="alert" th:if="${envioAlerta != null and envioAlerta > 0}"
+       th:text="${'Falha de envio por SMS e WhatsApp para ' + envioAlerta + ' destinatário(s). O alerta continua no aplicativo; você pode reenviar só para eles.'}"></p>
+    <th:block th:if="${ocorrencia.situacaoAtual.name() == 'CONFIRMADA'}">
+      <p class="mensagem erro" role="alert" th:if="${erroAlerta}" th:text="${erroAlerta.message}"></p>
+      <form method="post" th:action="@{/ocorrencias/{protocolo}/alertas(protocolo=${ocorrencia.protocolo})}">
+        <label for="titulo">Título *</label>
+        <input id="titulo" name="titulo" required th:value="${alerta?.titulo}">
+        <label for="mensagem">Mensagem descrevendo a situação *</label>
+        <textarea id="mensagem" name="mensagem" required th:text="${alerta?.mensagem}"></textarea>
+        <label for="orientacoes">Orientações aos moradores *</label>
+        <textarea id="orientacoes" name="orientacoes" required th:text="${alerta?.orientacoes}"></textarea>
+        <p class="orientacao" th:text="${'Destinatários: moradores com conta ativa na área ' + ocorrencia.areaNome + ', pela preferência de alertas (SMS, WhatsApp ou ambos). Se um canal falhar, o outro é tentado.'}"></p>
+        <button type="submit">Emitir alerta</button>
+      </form>
+    </th:block>
+    <p th:unless="${ocorrencia.situacaoAtual.name() == 'CONFIRMADA'}" class="orientacao">A emissão de alerta exige ocorrência Confirmada.</p>
+    <p th:if="${#lists.isEmpty(comunicados)}">Nenhum alerta emitido.</p>
+    <ul th:unless="${#lists.isEmpty(comunicados)}" class="verificacoes">
+      <li th:each="c : ${comunicados}">
+        <strong th:text="${c.tipo.rotulo + ': ' + c.titulo}"></strong> · <span th:text="${c.representanteNome}"></span> ·
+        <time th:datetime="${c.emitidoEm}" th:text="${c.emitidoEm}"></time> · <span th:text="${'Área ' + c.areaNome}"></span>
+        <p class="descricao" th:text="${c.mensagem}"></p>
+        <p class="descricao" th:if="${c.orientacoes}" th:text="${'Orientações: ' + c.orientacoes}"></p>
+        <p th:text="${c.destinatarios + ' destinatário(s), ' + c.falhas + ' com falha nos dois canais.'}"></p>
+        <form th:if="${c.reenviavel}" method="post" th:action="@{/ocorrencias/{protocolo}/alertas/{id}/reenvio(protocolo=${ocorrencia.protocolo},id=${c.id})}">
+          <button class="secundario" type="submit">Reenviar para quem falhou</button>
+        </form>
       </li>
     </ul>
   </section>

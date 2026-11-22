@@ -25,13 +25,14 @@ public class OcorrenciaService {
     private final UsuarioAtual usuarios;
     private final AuditoriaService auditoria;
     private final AutenticacaoMoradorService moradores;
+    private final AlertaService alertas;
     private final Clock clock;
 
     public OcorrenciaService(OcorrenciaRepository repository, AreaRiscoRepository areas,
             RepresentanteRepository representantes, UsuarioAtual usuarios, AuditoriaService auditoria,
-            AutenticacaoMoradorService moradores, Clock clock) {
+            AutenticacaoMoradorService moradores, AlertaService alertas, Clock clock) {
         this.repository = repository; this.areas = areas; this.representantes = representantes;
-        this.usuarios = usuarios; this.auditoria = auditoria; this.moradores = moradores; this.clock = clock;
+        this.usuarios = usuarios; this.auditoria = auditoria; this.moradores = moradores; this.alertas = alertas; this.clock = clock;
     }
 
     @Transactional
@@ -52,12 +53,17 @@ public class OcorrenciaService {
         return ocorrencia;
     }
 
+    @Transactional // chamada interna não passa pelo proxy: a transação de escrita precisa começar aqui
+    public Ocorrencia verificar(UUID protocolo, SituacaoOcorrencia decisao, String justificativa) {
+        return verificar(protocolo, decisao, justificativa, null);
+    }
+
     /**
      * RF009: só representantes decidem, em qualquer área; a confirmação não dispara alerta (regra 3).
-     * Regra 4 (aviso de alteração se já houver alerta) depende do RF010: hoje nenhuma ocorrência tem alerta.
+     * Regra 4: se já houver alerta, envia o aviso de alteração (RF011 regra 4) com resumo, sem a justificativa interna.
      */
     @Transactional
-    public Ocorrencia verificar(UUID protocolo, SituacaoOcorrencia decisao, String justificativa) {
+    public Ocorrencia verificar(UUID protocolo, SituacaoOcorrencia decisao, String justificativa, String orientacoes) {
         var ator = usuarios.exigirRepresentante();
         var representante = representantes.buscarPorIdComBloqueio(ator.id())
                 .orElseThrow(() -> new AccessDeniedException("Entre novamente na sua conta."));
@@ -68,6 +74,7 @@ public class OcorrenciaService {
         em.persist(ocorrencia.verificar(decisao, justificativa, representante, clock.instant()));
         // RF013 regras 1 e 4: valores anterior e novo; a justificativa fica fora da auditoria (interna, RF008 regra 6).
         auditoria.registrar("VERIFICAR_OCORRENCIA #" + protocolo + ": " + anterior + " -> " + ocorrencia.getSituacao());
+        alertas.avisarAlteracao(ocorrencia, "Situação alterada de " + anterior + " para " + ocorrencia.getSituacao() + ".", orientacoes, representante);
         return ocorrencia;
     }
 

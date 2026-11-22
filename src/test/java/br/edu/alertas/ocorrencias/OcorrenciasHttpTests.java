@@ -291,6 +291,46 @@ class OcorrenciasHttpTests extends OcorrenciasFixtures {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM verificacoes_ocorrencia v JOIN ocorrencias o ON o.id = v.ocorrencia_id WHERE o.protocolo = ?::uuid", Long.class, protocolo)).isEqualTo(1);
     }
 
+    // RF010: emissão por formulário real com CSRF, morador da área vê o alerta e o aviso de alteração (RF009 regra 4).
+    @Test
+    void representanteEmiteAlertaEMoradorDaAreaVeAlertaEAvisoDeAlteracao() throws Exception {
+        String cpf = novoMorador(area);
+        var p = service.registrar(dados(UUID.randomUUID())).getProtocolo();
+        String rota = "/ocorrencias/" + p + "/alertas";
+        var rep = autenticado();
+        assertThat(rep.get("/ocorrencias/" + p).body()).contains("A emissão de alerta exige ocorrência Confirmada.", "Envio simulado").doesNotContain("Emitir alerta");
+        String token = csrf(rep.get("/ocorrencias/" + p).body());
+        assertThat(rep.form("POST", rota, Map.of("_csrf", token, "titulo", "T", "mensagem", "M", "orientacoes", "O")).statusCode()).isEqualTo(400);
+        service.verificar(p, SituacaoOcorrencia.CONFIRMADA, "Vistoria fictícia");
+
+        assertThat(rep.get("/ocorrencias/" + p).body()).contains("Emitir alerta", "Orientações aos moradores *", "Nenhum alerta emitido.");
+        assertThat(rep.form("POST", rota, Map.of("titulo", "T", "mensagem", "M", "orientacoes", "O")).statusCode()).isEqualTo(403);
+        var vazio = rep.form("POST", rota, Map.of("_csrf", token, "titulo", "Título fictício", "mensagem", "Mensagem fictícia", "orientacoes", " "));
+        assertThat(vazio.statusCode()).isEqualTo(400);
+        assertThat(vazio.body()).contains("Informe as orientações aos moradores.", "Título fictício");
+        assertThat(rep.form("POST", "/ocorrencias/" + UUID.randomUUID() + "/alertas", Map.of("_csrf", token, "titulo", "T", "mensagem", "M", "orientacoes", "O")).statusCode()).isEqualTo(404);
+
+        var ok = rep.form("POST", rota, Map.of("_csrf", token, "titulo", "Alerta fictício", "mensagem", "Água subindo", "orientacoes", "Saia pela rua alta"));
+        assertThat(ok.statusCode()).isEqualTo(302);
+        assertThat(rep.get("/ocorrencias/" + p).body()).contains("Alerta enviado a todos os destinatários.", "Alerta: Alerta fictício",
+                "1 destinatário(s), 0 com falha nos dois canais.").doesNotContain("Reenviar para quem falhou");
+        assertThat(rep.form("POST", rota + "/999999999/reenvio", Map.of("_csrf", token)).statusCode()).isEqualTo(404);
+        assertThat(acoes()).contains("EMITIR_ALERTA #" + p);
+
+        var vizinho = moradorAutenticado(cpf);
+        assertThat(vizinho.get("/morador/alertas").body()).contains("Alerta: Alerta fictício", "Água subindo", "Orientações: Saia pela rua alta", p.toString());
+        assertThat(vizinho.form("POST", rota, Map.of("_csrf", csrf(vizinho.get("/morador/ocorrencias/novo").body()), "titulo", "X", "mensagem", "X", "orientacoes", "X")).statusCode()).isIn(302, 403);
+        assertThat(moradorAutenticado(novoMorador(novaArea())).get("/morador/alertas").body()).contains("Nenhum alerta para você.").doesNotContain("Alerta fictício");
+        assertThat(new Navegador().get("/morador/alertas").statusCode()).isIn(302, 403);
+
+        var revisao = rep.form("POST", "/ocorrencias/" + p + "/verificacao", Map.of("_csrf", token, "situacao", "NAO_CONFIRMADA",
+                "justificativa", "Justificativa interna fictícia", "orientacoes", "Pode voltar para casa"));
+        assertThat(revisao.statusCode()).isEqualTo(302);
+        assertThat(vizinho.get("/morador/alertas").body()).contains("Aviso de alteração: Alteração da ocorrência " + p,
+                "Situação alterada de Confirmada para Não confirmada.", "Pode voltar para casa").doesNotContain("Justificativa interna fictícia");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM comunicados_ocorrencia c JOIN ocorrencias o ON o.id = c.ocorrencia_id WHERE o.protocolo = ?", Long.class, p)).isEqualTo(2);
+    }
+
     private Navegador moradorAutenticado(String cpf) throws Exception {
         var navegador = new Navegador();
         navegador.destino = "/morador/ocorrencias";

@@ -25,8 +25,9 @@ public class OcorrenciaController {
     private final OcorrenciaService service;
     private final AreaRiscoRepository areas;
     private final UsuarioAtual usuarios;
-    public OcorrenciaController(OcorrenciaService service, AreaRiscoRepository areas, UsuarioAtual usuarios) {
-        this.service = service; this.areas = areas; this.usuarios = usuarios;
+    private final AlertaService alertas;
+    public OcorrenciaController(OcorrenciaService service, AreaRiscoRepository areas, UsuarioAtual usuarios, AlertaService alertas) {
+        this.service = service; this.areas = areas; this.usuarios = usuarios; this.alertas = alertas;
     }
 
     // RF008: pesquisa por protocolo e filtros por tipo e situação; área só para o representante.
@@ -141,19 +142,20 @@ public class OcorrenciaController {
             model.addAttribute("rascunhoChave", "REPRESENTANTE:" + ator.id());
         }
         model.addAttribute("verificacoes", service.verificacoes(protocolo));
+        model.addAttribute("comunicados", alertas.daOcorrencia(protocolo));
         return "ocorrencias/detalhe";
     }
 
     // RF009: formulário HTML com CSRF; erro volta à tela com 400 e o texto digitado.
     @PostMapping("/ocorrencias/{protocolo}/verificacao")
     String verificar(@PathVariable UUID protocolo, @RequestParam(defaultValue = "") String situacao,
-            @RequestParam(defaultValue = "") String justificativa, Model model, HttpServletResponse response,
-            RedirectAttributes redirect) {
+            @RequestParam(defaultValue = "") String justificativa, @RequestParam(defaultValue = "") String orientacoes,
+            Model model, HttpServletResponse response, RedirectAttributes redirect) {
         usuarios.exigirRepresentante();
         SituacaoOcorrencia decisao = null;
         try { decisao = SituacaoOcorrencia.valueOf(situacao); } catch (IllegalArgumentException ignorada) { } // o domínio rejeita nulo
         try {
-            service.verificar(protocolo, decisao, justificativa);
+            service.verificar(protocolo, decisao, justificativa, orientacoes);
         } catch (EntityNotFoundException exception) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         } catch (ErroOcorrencia exception) {
@@ -161,10 +163,48 @@ public class OcorrenciaController {
             model.addAttribute("erroVerificacao", exception);
             model.addAttribute("decisao", situacao);
             model.addAttribute("justificativa", justificativa);
+            model.addAttribute("orientacoesVerificacao", orientacoes);
             return detalhe(protocolo, model);
         }
         redirect.addFlashAttribute("verificada", true);
         return "redirect:/ocorrencias/" + protocolo;
+    }
+
+    // RF010 regra 1: ação explícita do representante, com CSRF; erro volta à tela com 400 e o texto digitado.
+    @PostMapping("/ocorrencias/{protocolo}/alertas")
+    String emitirAlerta(@PathVariable UUID protocolo, @RequestParam(defaultValue = "") String titulo,
+            @RequestParam(defaultValue = "") String mensagem, @RequestParam(defaultValue = "") String orientacoes,
+            Model model, HttpServletResponse response, RedirectAttributes redirect) {
+        usuarios.exigirRepresentante();
+        Comunicado alerta;
+        try {
+            alerta = alertas.emitir(protocolo, titulo, mensagem, orientacoes);
+        } catch (EntityNotFoundException exception) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        } catch (ErroOcorrencia exception) {
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            model.addAttribute("erroAlerta", exception);
+            model.addAttribute("alerta", Map.of("titulo", titulo, "mensagem", mensagem, "orientacoes", orientacoes));
+            return detalhe(protocolo, model);
+        }
+        redirect.addFlashAttribute("envioAlerta", alerta.getFalhas());
+        return "redirect:/ocorrencias/" + protocolo;
+    }
+
+    // RF010 regra 4: reenvio manual apenas para quem falhou nos dois canais.
+    @PostMapping("/ocorrencias/{protocolo}/alertas/{id}/reenvio")
+    String reenviarAlerta(@PathVariable UUID protocolo, @PathVariable Long id, RedirectAttributes redirect) {
+        usuarios.exigirRepresentante();
+        try { redirect.addFlashAttribute("envioAlerta", alertas.reenviar(protocolo, id).getFalhas()); }
+        catch (EntityNotFoundException exception) { throw new ResponseStatusException(HttpStatus.NOT_FOUND); }
+        return "redirect:/ocorrencias/" + protocolo;
+    }
+
+    @GetMapping("/morador/alertas")
+    String alertasDoMorador(Model model) {
+        model.addAttribute("morador", true);
+        model.addAttribute("alertas", alertas.doMorador());
+        return "ocorrencias/alertas";
     }
 
     @GetMapping("/morador/ocorrencias/{protocolo}")

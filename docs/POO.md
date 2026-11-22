@@ -56,3 +56,7 @@ A fachada `GestaoRepresentantesService` aplica autorização e transação do ca
 ## Verificação de ocorrências — RF009
 
 `Ocorrencia.verificar` é o único caminho para mudar a situação para Confirmada ou Não confirmada: recusa ocorrência encerrada, outra situação, a mesma decisão repetida e justificativa vazia, e devolve a `VerificacaoOcorrencia` imutável (`@Immutable`) que guarda justificativa, representante e instante. O campo `situacao` continua privado e sem setter. `OcorrenciaService.verificar` só autoriza, bloqueia a linha, persiste e audita.
+
+## Alertas — RF010
+
+`EnvioAlertas` é uma porta separada de `EnvioCredenciais` porque as regras diferem (RF010 regra 5: só alertas têm "ambos" e alternativa por falha); `EnvioAlertasSimulado` é a única implementação, sem rede. `Comunicado` encapsula o alerta e o aviso de alteração: as fábricas `alerta` (exige ocorrência Confirmada e os três textos) e `alteracao` são os únicos construtores, não há setters, e `distribuir` só alcança destinatários pendentes. `DestinatarioComunicado.tentar` decide os canais pela preferência do morador, com alternativa automática, e guarda se ao menos um canal aceitou.
