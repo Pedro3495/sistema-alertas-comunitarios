@@ -52,6 +52,31 @@ public class OcorrenciaService {
         return ocorrencia;
     }
 
+    /**
+     * RF009: só representantes decidem, em qualquer área; a confirmação não dispara alerta (regra 3).
+     * Regra 4 (aviso de alteração se já houver alerta) depende do RF010: hoje nenhuma ocorrência tem alerta.
+     */
+    @Transactional
+    public Ocorrencia verificar(UUID protocolo, SituacaoOcorrencia decisao, String justificativa) {
+        var ator = usuarios.exigirRepresentante();
+        var representante = representantes.buscarPorIdComBloqueio(ator.id())
+                .orElseThrow(() -> new AccessDeniedException("Entre novamente na sua conta."));
+        em.refresh(representante); // mesma proteção do registrar contra desativação concorrente
+        usuarios.exigirRepresentante();
+        var ocorrencia = repository.buscarComBloqueio(protocolo).orElseThrow(() -> new EntityNotFoundException("Ocorrência não encontrada."));
+        var anterior = ocorrencia.getSituacao();
+        em.persist(ocorrencia.verificar(decisao, justificativa, representante, clock.instant()));
+        // RF013 regras 1 e 4: valores anterior e novo; a justificativa fica fora da auditoria (interna, RF008 regra 6).
+        auditoria.registrar("VERIFICAR_OCORRENCIA #" + protocolo + ": " + anterior + " -> " + ocorrencia.getSituacao());
+        return ocorrencia;
+    }
+
+    /** RF008 regra 6: histórico com justificativas, só para representantes. */
+    public List<VerificacaoOcorrencia> verificacoes(UUID protocolo) {
+        usuarios.exigirRepresentante();
+        return repository.verificacoes(protocolo);
+    }
+
     /** Morador autenticado com a residência atual, para preencher a área do formulário. */
     @Transactional
     public br.edu.alertas.moradores.Morador moradorAtual() {

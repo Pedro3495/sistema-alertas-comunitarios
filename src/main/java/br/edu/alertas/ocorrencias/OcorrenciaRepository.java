@@ -1,13 +1,22 @@
 package br.edu.alertas.ocorrencias;
 
+import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
 interface OcorrenciaRepository extends JpaRepository<Ocorrencia, Long> {
     Optional<Ocorrencia> findByProtocolo(UUID protocolo);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select o from Ocorrencia o where o.protocolo = :protocolo")
+    Optional<Ocorrencia> buscarComBloqueio(UUID protocolo);
+
+    @Query("select v from VerificacaoOcorrencia v where v.ocorrencia.protocolo = :protocolo order by v.verificadaEm desc, v.id desc")
+    List<VerificacaoOcorrencia> verificacoes(UUID protocolo);
     Optional<Ocorrencia> findByRepresentante_IdAndEnvioId(Long representanteId, UUID envioId);
     Optional<Ocorrencia> findByMorador_IdAndEnvioId(Long moradorId, UUID envioId);
 

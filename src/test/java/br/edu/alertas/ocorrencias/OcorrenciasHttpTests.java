@@ -255,6 +255,42 @@ class OcorrenciasHttpTests extends OcorrenciasFixtures {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM ocorrencias WHERE morador_id IS NOT NULL AND area_id = ?", Long.class, area)).isZero();
     }
 
+    // RF009: formulário real com CSRF; justificativa só na tela do representante; filtros do RF008 passam a achar Confirmada.
+    @Test
+    void representanteVerificaPeloFormularioEMoradorVeSoASituacao() throws Exception {
+        String cpf = novoMorador(area);
+        var autor = moradorAutenticado(cpf);
+        String protocolo = json(autor.multipart(campos(UUID.randomUUID().toString()), List.of(imagem("png")), csrf(autor.get("/morador/ocorrencias/novo").body()), "image/png", "foto.png").body(), "protocolo");
+        String rota = "/ocorrencias/" + protocolo + "/verificacao";
+
+        var rep = autenticado();
+        String detalhe = rep.get("/ocorrencias/" + protocolo).body();
+        assertThat(detalhe).contains("Verificar ocorrência", "Justificativa interna", "Confirmar não envia alerta", "Nenhuma verificação registrada.");
+        String token = csrf(detalhe);
+        assertThat(rep.form("POST", rota, Map.of("situacao", "CONFIRMADA", "justificativa", "Sem CSRF")).statusCode()).isEqualTo(403);
+        var vazia = rep.form("POST", rota, Map.of("_csrf", token, "situacao", "CONFIRMADA", "justificativa", "  "));
+        assertThat(vazia.statusCode()).isEqualTo(400);
+        assertThat(vazia.body()).contains("Informe a justificativa da verificação.");
+        assertThat(rep.form("POST", rota, Map.of("_csrf", token, "situacao", "ENCERRADA", "justificativa", "x")).statusCode()).isEqualTo(400);
+        assertThat(rep.form("POST", "/ocorrencias/" + UUID.randomUUID() + "/verificacao", Map.of("_csrf", token, "situacao", "CONFIRMADA", "justificativa", "x")).statusCode()).isEqualTo(404);
+
+        var ok = rep.form("POST", rota, Map.of("_csrf", token, "situacao", "CONFIRMADA", "justificativa", "Vistoria fictícia interna"));
+        assertThat(ok.statusCode()).isEqualTo(302);
+        assertThat(ok.headers().firstValue("Location").orElseThrow()).endsWith("/ocorrencias/" + protocolo);
+        assertThat(rep.get("/ocorrencias/" + protocolo).body()).contains("Verificação salva.", "Confirmada", "Vistoria fictícia interna", representante.getNomeCompleto());
+        assertThat(rep.get("/ocorrencias?situacao=CONFIRMADA&areaId=" + area).body()).contains(protocolo);
+        assertThat(acoes()).containsExactly("VERIFICAR_OCORRENCIA #" + protocolo + ": Em verificação -> Confirmada");
+
+        // Morador (autor ou vizinho) acompanha a situação, sem justificativa nem formulário, e não consegue verificar.
+        for (var morador : List.of(autor, moradorAutenticado(novoMorador(area)))) {
+            var visto = morador.get("/morador/ocorrencias/" + protocolo).body();
+            assertThat(visto).contains("Confirmada").doesNotContain("Vistoria fictícia interna", "Verificar ocorrência", "verificacao");
+            int status = morador.form("POST", rota, Map.of("_csrf", csrf(morador.get("/morador/ocorrencias/novo").body()), "situacao", "NAO_CONFIRMADA", "justificativa", "Morador")).statusCode();
+            assertThat(status).isIn(302, 403);
+        }
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM verificacoes_ocorrencia v JOIN ocorrencias o ON o.id = v.ocorrencia_id WHERE o.protocolo = ?::uuid", Long.class, protocolo)).isEqualTo(1);
+    }
+
     private Navegador moradorAutenticado(String cpf) throws Exception {
         var navegador = new Navegador();
         navegador.destino = "/morador/ocorrencias";
