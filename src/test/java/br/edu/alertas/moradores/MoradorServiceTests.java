@@ -20,10 +20,14 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.mockito.ArgumentCaptor;
+import java.time.Duration;
+import java.time.Instant;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.util.AopTestUtils;
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.startsWith;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @SpringBootTest
@@ -35,6 +39,8 @@ class MoradorServiceTests {
     @Autowired AdministradorService administradores;
     @Autowired JdbcTemplate jdbc;
     @MockitoSpyBean AuditoriaService auditoria;
+    @MockitoSpyBean EnvioCredenciais envio;
+    @Autowired PasswordEncoder encoder;
     private AcessoRepresentante ator;
     private Long representanteId;
     private long area;
@@ -54,7 +60,7 @@ class MoradorServiceTests {
 
     @AfterEach
     void limparSomenteFixtures() {
-        reset(auditoria);
+        reset(auditoria, envio);
         SecurityContextHolder.clearContext();
         jdbc.update("DELETE FROM moradores WHERE residencia_id IN (SELECT id FROM residencias WHERE area_id = ?)", area);
         jdbc.update("DELETE FROM residencias WHERE area_id = ?", area);
@@ -115,9 +121,9 @@ class MoradorServiceTests {
     void recusaDadosInvalidosEResidenciaAusenteSemAuditar() {
         var morador = cadastrar("Original", "52998224725", "81900000001");
         var antes = acoes();
-        assertThatIllegalArgumentException().isThrownBy(() -> service.cadastrarBase(null));
-        assertThatIllegalArgumentException().isThrownBy(() -> service.cadastrarBase(dados("Novo", "11144477735", "81900000002", null)));
-        assertThatIllegalArgumentException().isThrownBy(() -> service.cadastrarBase(dados("Novo", "11144477735", "81900000002", Long.MAX_VALUE)));
+        assertThatIllegalArgumentException().isThrownBy(() -> service.cadastrar(null));
+        assertThatIllegalArgumentException().isThrownBy(() -> service.cadastrar(dados("Novo", "11144477735", "81900000002", null)));
+        assertThatIllegalArgumentException().isThrownBy(() -> service.cadastrar(dados("Novo", "11144477735", "81900000002", Long.MAX_VALUE)));
         assertThatIllegalArgumentException().isThrownBy(() -> service.alterar(morador.getId(), "Novo", "11144477735", "x", residencia));
         assertThatIllegalArgumentException().isThrownBy(() -> service.alterar(morador.getId(), "Novo", "11144477735", "81900000002", Long.MAX_VALUE));
         assertThat(service.buscar(morador.getId()).getNomeCompleto()).isEqualTo("Original");
@@ -214,8 +220,77 @@ class MoradorServiceTests {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM residencias WHERE id = ?", Integer.class, vinculo)).isEqualTo(1);
     }
 
+    @Test
+    void cadastroEmiteSenhaTemporariaComHashValidadeDe24hEEnvioSimuladoPeloCanalEscolhido() {
+        Instant antes = Instant.now();
+        var morador = service.cadastrar(new DadosMorador("Pessoa", "52998224725", "81900000001", residencia,
+                CanalCredenciais.WHATSAPP, PreferenciaAlertas.SMS));
+        String senha = senhaEnviada(1, CanalCredenciais.WHATSAPP, "81900000001");
+        assertThat(senha.codePointCount(0, senha.length())).isGreaterThanOrEqualTo(8);
+        assertThat(encoder.matches(senha, hash(morador.getId()))).isTrue();
+        assertThat(hash(morador.getId())).doesNotContain(senha);
+        Instant expira = jdbc.queryForObject("SELECT senha_temporaria_expira_em FROM moradores WHERE id = ?", Instant.class, morador.getId());
+        assertThat(expira).isBetween(antes.plus(Duration.ofHours(24)), Instant.now().plus(Duration.ofHours(24)));
+        assertThat(service.buscar(morador.getId()).isCredenciaisPendentes()).isFalse();
+        assertThat(acoes()).filteredOn(acao -> acao.endsWith("#" + morador.getId())).containsExactly("CADASTRAR_MORADOR #" + morador.getId(),
+                "ENVIO_SIMULADO_SENHA_TEMPORARIA_WHATSAPP #" + morador.getId());
+        assertThat(acoes()).allSatisfy(acao -> assertThat(acao).doesNotContain(senha));
+        assertThatIllegalStateException().isThrownBy(() -> service.reenviarSenhaTemporaria(morador.getId()));
+        assertThat(acoes()).filteredOn(acao -> acao.endsWith("#" + morador.getId())).hasSize(2);
+    }
+
+    @Test
+    void falhaOuExcecaoNoEnvioMantemCadastroEReenvioManualUsaMesmoCanalComNovaSenha() {
+        doReturn(false).when(envio).enviarSenhaTemporaria(any(), any(), any());
+        var morador = cadastrar("Pessoa", "52998224725", "81900000001");
+        assertThat(service.buscar(morador.getId()).isCredenciaisPendentes()).isTrue();
+        String primeira = senhaEnviada(1, CanalCredenciais.SMS, "81900000001");
+        doThrow(new IllegalStateException("Provedor simulado indisponível")).when(envio).enviarSenhaTemporaria(any(), any(), any());
+        service.reenviarSenhaTemporaria(morador.getId());
+        assertThat(service.buscar(morador.getId()).isCredenciaisPendentes()).isTrue();
+        doCallRealMethod().when(envio).enviarSenhaTemporaria(any(), any(), any());
+        service.reenviarSenhaTemporaria(morador.getId());
+        String ultima = senhaEnviada(3, CanalCredenciais.SMS, "81900000001");
+        assertThat(ultima).isNotEqualTo(primeira);
+        assertThat(encoder.matches(ultima, hash(morador.getId()))).isTrue();
+        assertThat(encoder.matches(primeira, hash(morador.getId()))).isFalse();
+        assertThat(service.buscar(morador.getId()).isCredenciaisPendentes()).isFalse();
+        String sufixo = "SMS #" + morador.getId();
+        assertThat(acoes()).filteredOn(acao -> acao.endsWith("#" + morador.getId())).containsExactly("CADASTRAR_MORADOR #" + morador.getId(),
+                "FALHA_ENVIO_SIMULADO_SENHA_TEMPORARIA_" + sufixo, "FALHA_ENVIO_SIMULADO_SENHA_TEMPORARIA_" + sufixo,
+                "ENVIO_SIMULADO_SENHA_TEMPORARIA_" + sufixo);
+    }
+
+    @Test
+    void contaDesativadaNaoRecebeReenvio() {
+        doReturn(false).when(envio).enviarSenhaTemporaria(any(), any(), any());
+        var morador = cadastrar("Pessoa", "52998224725", "81900000001");
+        service.desativar(morador.getId());
+        var antes = acoes();
+        assertThatIllegalStateException().isThrownBy(() -> service.reenviarSenhaTemporaria(morador.getId()));
+        verify(envio, times(1)).enviarSenhaTemporaria(any(), any(), any());
+        assertThat(acoes()).isEqualTo(antes);
+    }
+
+    @Test
+    void simuladorSemRedeAceitaPorPadraoESimulaFalhaQuandoConfigurado() {
+        assertThat(new EnvioCredenciaisSimulado(false).enviarSenhaTemporaria(CanalCredenciais.SMS, "81900000001", "senha-ficticia")).isTrue();
+        assertThat(new EnvioCredenciaisSimulado(true).enviarSenhaTemporaria(CanalCredenciais.WHATSAPP, "81900000001", "senha-ficticia")).isFalse();
+    }
+
+    private String senhaEnviada(int envios, CanalCredenciais canal, String celular) {
+        var senhas = ArgumentCaptor.forClass(String.class);
+        verify(envio, times(envios)).enviarSenhaTemporaria(eq(canal), eq(celular), senhas.capture());
+        return senhas.getValue();
+    }
+
+    private String hash(Long id) {
+        return jdbc.queryForObject("SELECT senha_hash FROM moradores WHERE id = ?", String.class, id);
+    }
+
     private void verificarNegacoes(Long id) {
         for (Runnable operacao : List.<Runnable>of(() -> cadastrar("Novo", "11144477735", "81900000002"),
+                () -> service.reenviarSenhaTemporaria(id),
                 () -> service.buscar(id), () -> service.pesquisar(null), () -> service.desativar(id),
                 () -> service.reativar(id), () -> service.alterar(id, "Novo", "11144477735", "81900000002", residencia))) {
             assertThatThrownBy(operacao::run).isInstanceOf(AccessDeniedException.class);
@@ -249,7 +324,7 @@ class MoradorServiceTests {
     }
 
     private Morador cadastrar(String nome, String cpf, String celular) {
-        return service.cadastrarBase(dados(nome, cpf, celular, residencia));
+        return service.cadastrar(dados(nome, cpf, celular, residencia));
     }
 
     private DadosMorador dados(String nome, String cpf, String celular, Long residenciaId) {

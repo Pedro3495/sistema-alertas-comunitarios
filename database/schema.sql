@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict QZqKcaijtfRoC87ksfqSEY9Y2fL4pejMGkqtimuDOYPn5eN90AHYOlC9JJhjY4C
+\restrict bjjTnDF89aQlZwKyX5Fx9pOeU2P9LoqGR5Vk4QDeXVaaEMpWaOJHCwYnDh9WtlD
 
 -- Dumped from database version 17.10
 -- Dumped by pg_dump version 17.10
@@ -112,11 +112,16 @@ CREATE TABLE public.moradores (
     canal_credenciais text NOT NULL,
     preferencia_alertas text NOT NULL,
     ativa boolean NOT NULL,
+    senha_hash text,
+    senha_temporaria_expira_em timestamp with time zone,
+    credenciais_pendentes boolean DEFAULT true NOT NULL,
+    CONSTRAINT ck_moradores_senha_temporaria CHECK (((senha_hash IS NULL) = (senha_temporaria_expira_em IS NULL))),
     CONSTRAINT moradores_canal_credenciais_check CHECK ((canal_credenciais = ANY (ARRAY['SMS'::text, 'WHATSAPP'::text]))),
     CONSTRAINT moradores_celular_check CHECK ((celular ~ '^[0-9]{11}$'::text)),
     CONSTRAINT moradores_cpf_check CHECK ((cpf ~ '^[0-9]{11}$'::text)),
     CONSTRAINT moradores_nome_completo_check CHECK ((nome_completo ~ '[^[:space:]]'::text)),
-    CONSTRAINT moradores_preferencia_alertas_check CHECK ((preferencia_alertas = ANY (ARRAY['SMS'::text, 'WHATSAPP'::text, 'AMBOS'::text])))
+    CONSTRAINT moradores_preferencia_alertas_check CHECK ((preferencia_alertas = ANY (ARRAY['SMS'::text, 'WHATSAPP'::text, 'AMBOS'::text]))),
+    CONSTRAINT moradores_senha_hash_check CHECK ((senha_hash ~ '[^[:space:]]'::text))
 );
 
 
@@ -431,4 +436,4 @@ ALTER TABLE ONLY public.residencias
 -- PostgreSQL database dump complete
 --
 
-\unrestrict QZqKcaijtfRoC87ksfqSEY9Y2fL4pejMGkqtimuDOYPn5eN90AHYOlC9JJhjY4C
+\unrestrict bjjTnDF89aQlZwKyX5Fx9pOeU2P9LoqGR5Vk4QDeXVaaEMpWaOJHCwYnDh9WtlD
