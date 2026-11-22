@@ -1,33 +1,57 @@
 # SDD — áreas e residências para representantes
 
-Fonte RF002/RF003, RF013 e RS001/005. Continuação do PR #20; branch feat/rf002-residencias-areas. Provedor SMS/WhatsApp permanece lacuna confirmada pelo usuário. Esta entrega não precisa enviar mensagens nem criar moradores.
+Fontes: RF002, RF003, RF013 e RS001/RS005. Continuação do PR #20 na branch `feat/rf002-residencias-areas`. O usuário ainda não escolheu o provedor de SMS/WhatsApp; esta entrega não envia mensagens nem cria moradores. O Word aprovado permanece intacto.
 
 ## Coordenação
 
-V7 `V7__criar_residencias.sql` reservada. Agente domínio/web de residências altera somente pacote residencias, templates/residencias, CSSopcionalresidencias eV7. Executorprincipal faz áreas/guards/segurança/navegação; outroagente testesHTTP. API compartilhada: `UsuarioAtual.exigirRepresentante()` retorna Responsavel e exige principal definitivo válido, semadmin. `AuditoriaService.registrar(String acao)` usa ator atual e exige transação. Não mudar resto dos contratos.
+V7 `V7__criar_residencias.sql` reservada. Um agente implementa o pacote, templates e CSS de residências; outro prepara testes HTTP independentes. O coordenador implementa áreas, permissões e navegação, integra os commits e executa os testes. Cada executor usa worktree próprio.
+
+Contratos compartilhados: `UsuarioAtual.exigirRepresentante()` exige principal definitivo válido e retorna `Responsavel`; administrador não recebe essa permissão. `AuditoriaService.registrar(String acao)` usa o ator autenticado e exige transação existente.
 
 ## Residências
 
-`DadosResidencia(String ruaLogradouro,String numero,String bairro,String municipio,String complemento,String pontoReferencia,Long areaId)` record público. `ResidenciaService.cadastrar(DadosResidencia)` e `alterar(Long id,DadosResidencia)` retornam Residencia; `buscar(Long id)`, `pesquisar(String rua,String numero,String bairro,String municipio,Long areaId)`, `excluir(Long id)`.
+DTO público: `DadosResidencia(String ruaLogradouro, String numero, String bairro, String municipio, String complemento, String pontoReferencia, Long areaId)`.
 
-Service exige representante definitivo em cada operação; mutações transacionais com auditoria (CADASTRAR_RESIDENCIA/ALTERAR_RESIDENCIA/EXCLUIR_RESIDENCIA #id). Domínio valida todos campos antesmutar. Quatrotextos obrigatórios, opcionais livres, número String aceitas/n; sem CEP, UF, geocodificação, unicidadedeendereço oucomprovante. Uma área existente porresidência, selecionadamanualmente. CamposTEXT, semnovosmáximos. V7 table residencias id,rua_logradouro,numero,bairro,municipio,complemento,ponto_referencia,area_id NOTNULL FKareas_risco(id) ON DELETE RESTRICT. JPA/consultapré-carregaarea necessáriaaHTML, semOpenInView. Gettersid/campos/areaId/areaNome paraform/resultado.
+Operações de `ResidenciaService`:
 
-Pesquisa opcional por trecho case-insensitive nos4textos comAND; % _ e barra literais, blanknãofiltra; areaId porigualdade. Nenhum actor/id deresidência decidido pelo clientealémdopathdaoperação; atoréprincipal.
+- `cadastrar(DadosResidencia)` e `alterar(Long id, DadosResidencia)` retornam `Residencia`.
+- `buscar(Long id)` retorna `Residencia`.
+- `pesquisar(String rua, String numero, String bairro, String municipio, Long areaId)` retorna lista.
+- `excluir(Long id)` não retorna valor.
 
-HTTP GET `/residencias` filtros rua,numero,bairro,municipio,areaId; GET/POST `/residencias/novo` campos DTO; GET/POST `/residencias/{id}/editar`; POST `/residencias/{id}/excluir` confirmacao=true obrigatório. SemGETdestrutivo. GETedição exibecheckbox de exclusão cominstrução. Sucesso PRG/residencias?sucesso. Erros200comalert/erroscampo e preserva dados, inclusiveseárea sumir durantepreenchimento. IDnãoexistente404. Semáreas, informarcadastrararea/link/areas/novo, sempseudoseed. ExclusãocomvínculoFKfuturorecusadacomtextocompreensível. Sem consultasfictícias de moradoresnãoexistentes.
+Todas exigem representante definitivo. Mutações e auditoria participam da mesma transação; ações são `CADASTRAR_RESIDENCIA`, `ALTERAR_RESIDENCIA` e `EXCLUIR_RESIDENCIA`, incluindo o ID do alvo. Validar todos os campos antes de alterar o domínio.
 
-## Áreas — executor principal
+Rua/logradouro, número, bairro e município são obrigatórios. Complemento e ponto de referência são opcionais. Número é texto e aceita `s/n`. Uma área existente é selecionada manualmente. Não acrescentar CEP, UF, coordenadas, comprovante, exclusividade do endereço ou máximos de caracteres.
 
-Preservar service atual (pesquisarPorNome rejeitabranco). Acrescentar buscar/listar/excluir viarepo; exclusão usa flush parafalhadeFKrevertertransação. Fachada exigeREPdefinitivo e auditoria em cadastro/alteração/exclusão (prefixos CADASTRAR_AREA/ALTERAR_AREA/EXCLUIR_AREA #id).
+V7 cria `residencias`: id, rua_logradouro, numero, bairro, municipio, complemento, ponto_referencia e area_id. Textos são `TEXT`; os quatro obrigatórios rejeitam conteúdo vazio. `area_id` é obrigatório e referencia `areas_risco(id)` com `ON DELETE RESTRICT`. Carregar a área necessária à renderização sem depender de OpenInView. Expor getters de id, campos, areaId e areaNome para formulário/resultado.
 
-HTTP GET `/areas` filtro nome, GET/POST `/areas/novo` campos nome/descricaoLocalizacaoLimites, GET/POST `/areas/{id}/editar`, POST `/areas/{id}/excluir` confirmacao=true. Faltaobrigatório200erropróximoecampospreservados, id404. Área alterada mantémIDevínculosresidenciais, semredistribuiçãoautomática. FKrealproíbeexcluircomresidências. Mesmaordem transacionalaauditoria.
+Escolha técnica da pesquisa: trechos sem distinção de caixa nos quatro campos textuais, combinados com AND; `%`, `_` e barra invertida são literais. Filtro vazio não restringe; área usa igualdade.
 
-## Autorização/UI
+Rotas:
 
-Cadeiarep libera somente /areas,/areas/**,/residencias,/residencias/** paraREPdefinitiva; temporária/admin/anônimonegados(anonpoderedirecionarlogin). FormsCSRF, naváreas/residências/auditoria/sair, respeitarAstryxNeutral/telasexistentes e botõesgrandes/labels/responsivo. Nenhumcampodeator. Adminnãoherdapermissões.
+- GET `/residencias`: filtros `rua`, `numero`, `bairro`, `municipio`, `areaId`.
+- GET/POST `/residencias/novo`: campos do DTO.
+- GET/POST `/residencias/{id}/editar`.
+- POST `/residencias/{id}/excluir`: exige `confirmacao=true`.
 
-## Aceite e limite real
+Sucesso redireciona para `/residencias?sucesso`. Erros de preenchimento retornam200, explicam o campo e preservam os valores, inclusive seleção de área inválida ou removida durante o preenchimento. ID inexistente retorna404. Sem áreas, orientar o cadastro em `/areas/novo`, sem seed. Não excluir por GET. Falta de confirmação não altera nem audita. Não consultar vínculos fictícios com moradores ainda inexistentes.
 
-HTTPPostgreSQL: cadastrar/editar/pesquisar/excluirregistros, obrigatórios, opcionais,s/n,filtroAND e literais, transferência manual deárea, correçãodeáreapreservaIDs,FKbloqueiaexclusãovinculada/rollbackauditoria, confirmaçãosemconsentimento nãoaltera/audita, autorizaçãoCSRF, históricoatorestável. Pelo menos testeconcorrrente criaçãoresidênciavsdeleteárea e transferência vsdeleteáreadestino: semórfãos e ambosnuncaconfirmamestadoinválido. SQLrestaurado e CI/testeslocais,revisãotécnica independente,390/1440visual.
+## Áreas
 
-Ainda não existem moradores e ocorrências. Não declarar seus bloqueios de exclusão entregues, nem criar counts/tabelasfake. Migrações desses módulos precisarão FKs restritivas pararesidência/área antesdosfluxos públicos. RF002/RF003 seguemparciais nessa integração. Não editar Word,nemmerge/deploy.
+Preservar o contrato existente: `pesquisarPorNome` rejeita termo vazio. Acrescentar `buscar`, `listar` e `excluir`; a fachada usa `listar` quando a pesquisa vier vazia. Exclusão deve executar flush para que conflito de FK reverta a transação. A fachada exige representante definitivo e audita cadastro, alteração e exclusão com os prefixos `CADASTRAR_AREA`, `ALTERAR_AREA` e `EXCLUIR_AREA`, incluindo ID.
+
+GET `/areas` recebe filtro `nome`. GET/POST `/areas/novo` e `/areas/{id}/editar` recebem `nome` e `descricaoLocalizacaoLimites`. POST `/areas/{id}/excluir` exige `confirmacao=true`. Obrigatórios inválidos retornam200 com erro junto ao campo e valores preservados; ID inexistente retorna404. A alteração mantém o ID e os vínculos residenciais, sem redistribuição automática. O FK real proíbe excluir área com residência vinculada.
+
+## Autorização e interface
+
+A cadeia dos representantes libera `/areas`, `/areas/**`, `/residencias` e `/residencias/**` somente para representante definitivo. Temporária e administrador são negados; anônimo pode receber403 ou redirecionamento ao login. O ator vem da sessão, nunca do formulário.
+
+Formulários mantêm CSRF. Navegação oferece áreas, residências, auditoria e sair. Preservar Astryx Neutral e os padrões existentes, com labels, botões grandes e layout responsivo. Não conceder ao administrador funções exclusivas dos representantes.
+
+## Aceite e limites
+
+Verificar com HTTP e PostgreSQL reais: cadastro/edição/pesquisa/exclusão, campos obrigatórios e opcionais, `s/n`, filtros AND e literais, transferência manual de área, vínculos preservados na correção da área, recusa da exclusão vinculada sem auditoria falsa, confirmação, autorização e CSRF. O histórico deve manter o responsável estável.
+
+Testar criação de residência versus exclusão de área e transferência versus exclusão da área de destino em transações concorrentes: nenhuma residência órfã e nenhuma confirmação conjunta de estado inválido. Conferir SQL em banco vazio, suíte local/CI, revisão independente e telas a390/1440px.
+
+Moradores e ocorrências ainda não existem. Seus bloqueios de exclusão não estão entregues; não criar counts ou tabelas fictícias. As migrações desses módulos precisarão de FKs restritivas antes de expor seus cadastros. RF002/RF003 permanecem parciais quanto a essas integrações. Sem merge ou deploy.
