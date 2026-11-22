@@ -372,7 +372,7 @@ class AreasResidenciasHttpTests {
     private long areaDaResidencia(long id) { return jdbc.queryForObject("SELECT area_id FROM residencias WHERE id = ?", Long.class, id); }
     private boolean existeResidencia(long id) { return jdbc.queryForObject("SELECT count(*) FROM residencias WHERE id = ?", Integer.class, id) == 1; }
     private boolean existeArea(long id) { return jdbc.queryForObject("SELECT count(*) FROM areas_risco WHERE id = ?", Integer.class, id) == 1; }
-    private List<String> acoes() { return jdbc.queryForList("SELECT acao FROM registros_auditoria WHERE responsavel_tipo = 'REPRESENTANTE' AND responsavel_id = ? ORDER BY id", String.class, ator.getId()); }
+    private List<String> acoes() { return jdbc.queryForList("SELECT acao FROM registros_auditoria WHERE responsavel_tipo = 'REPRESENTANTE' AND responsavel_id = ? AND acao NOT LIKE 'DEFINIR_SENHA_DEFINITIVA_%' ORDER BY id", String.class, ator.getId()); } // a primeira troca do preparo do ator não é a ação testada
     private static String editarArea(long id) { return "/areas/" + id + "/editar"; }
     private static String excluirArea(long id) { return "/areas/" + id + "/excluir"; }
     private static String editarResidencia(long id) { return "/residencias/" + id + "/editar"; }

@@ -54,6 +54,7 @@ class AutenticacaoRepresentanteServiceTests {
 
     @AfterEach
     void removeSomenteFixturesDesteTeste() {
+        criados.forEach(id -> jdbc.update("DELETE FROM registros_auditoria WHERE responsavel_tipo = 'REPRESENTANTE' AND responsavel_id = ?", id));
         criados.forEach(id -> jdbc.update("DELETE FROM representantes WHERE id = ?", id));
     }
 
@@ -67,6 +68,10 @@ class AutenticacaoRepresentanteServiceTests {
         assertThat(autenticacao.validarSessao(temporario)).isTrue();
 
         autenticacao.trocarSenha(temporario, DEFINITIVA);
+        // Decisão de Pedro (22/11/2026): a primeira troca é auditada em nome do representante, sem senha nem hash.
+        assertThat(jdbc.queryForList("SELECT acao || '|' || responsavel_id FROM registros_auditoria WHERE responsavel_tipo = 'REPRESENTANTE' AND responsavel_id = ?", String.class, conta.getId()))
+                .containsExactly("DEFINIR_SENHA_DEFINITIVA_REPRESENTANTE #" + conta.getId() + "|" + conta.getId())
+                .allSatisfy(linha -> assertThat(linha).doesNotContain(DEFINITIVA, TEMPORARIA, hash(conta.getId())));
 
         assertThat(autenticacao.validarSessao(temporario)).isFalse();
         assertThat(autenticacao.autenticar(conta.getLogin(), TEMPORARIA)).isEmpty();

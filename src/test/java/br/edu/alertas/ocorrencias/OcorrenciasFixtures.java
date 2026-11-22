@@ -145,7 +145,7 @@ abstract class OcorrenciasFixtures {
     }
 
     List<String> acoes() {
-        return jdbc.queryForList("SELECT acao FROM registros_auditoria WHERE responsavel_tipo = 'REPRESENTANTE' AND responsavel_id = ? ORDER BY id", String.class, representante.getId());
+        return jdbc.queryForList("SELECT acao FROM registros_auditoria WHERE responsavel_tipo = 'REPRESENTANTE' AND responsavel_id = ? AND acao NOT LIKE 'DEFINIR_SENHA_DEFINITIVA_%' ORDER BY id", String.class, representante.getId()); // a primeira troca do preparo do ator não é a ação testada
     }
 
     static byte[] imagem(String formato) {

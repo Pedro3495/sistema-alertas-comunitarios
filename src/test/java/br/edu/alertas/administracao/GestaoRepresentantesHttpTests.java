@@ -70,6 +70,8 @@ class GestaoRepresentantesHttpTests {
         if (adminCriado) {
             jdbc.update("DELETE FROM registros_auditoria WHERE responsavel_tipo = 'ADMINISTRADOR' AND responsavel_id = 1");
         }
+        criados.forEach(id -> jdbc.update("DELETE FROM registros_auditoria WHERE responsavel_tipo = 'REPRESENTANTE' AND responsavel_id = ?", id));
+        loginsCriadosPorHttp.forEach(login -> jdbc.update("DELETE FROM registros_auditoria WHERE responsavel_tipo = 'REPRESENTANTE' AND responsavel_id IN (SELECT id FROM representantes WHERE login = ?)", login));
         criados.forEach(id -> jdbc.update("DELETE FROM representantes WHERE id = ?", id));
         loginsCriadosPorHttp.forEach(login -> jdbc.update("DELETE FROM representantes WHERE login = ?", login));
         if (adminCriado) {

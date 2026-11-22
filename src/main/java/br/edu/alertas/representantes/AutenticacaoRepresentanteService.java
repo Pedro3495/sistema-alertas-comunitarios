@@ -1,9 +1,11 @@
 package br.edu.alertas.representantes;
 
+import br.edu.alertas.auditoria.AuditoriaService;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -16,12 +18,15 @@ public class AutenticacaoRepresentanteService {
     private final PasswordEncoder encoder;
     private final Clock clock;
     private final String hashContaInexistente;
+    private final AuditoriaService auditoria;
 
+    // @Lazy: AuditoriaService depende de UsuarioAtual, que depende deste serviço.
     public AutenticacaoRepresentanteService(RepresentanteRepository repository,
-            PasswordEncoder encoder, Clock clock) {
+            PasswordEncoder encoder, Clock clock, @Lazy AuditoriaService auditoria) {
         this.repository = repository;
         this.encoder = encoder;
         this.clock = clock;
+        this.auditoria = auditoria;
         hashContaInexistente = encoder.encode(UUID.randomUUID().toString());
     }
 
@@ -68,5 +73,6 @@ public class AutenticacaoRepresentanteService {
         }
         RepresentanteService.validarSenha(novaSenha);
         representante.definirSenhaDefinitiva(encoder.encode(novaSenha));
+        auditoria.registrarConta("DEFINIR_SENHA_DEFINITIVA_REPRESENTANTE #" + acesso.id(), "REPRESENTANTE", acesso.id());
     }
 }

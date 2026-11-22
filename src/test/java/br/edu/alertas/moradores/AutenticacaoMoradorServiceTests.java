@@ -52,6 +52,7 @@ class AutenticacaoMoradorServiceTests {
 
     @AfterEach
     void limpar() {
+        jdbc.update("DELETE FROM registros_auditoria WHERE responsavel_tipo = 'MORADOR' AND responsavel_id = ?", morador);
         jdbc.update("DELETE FROM moradores WHERE residencia_id = ?", residencia);
         jdbc.update("DELETE FROM residencias WHERE id = ?", residencia);
         jdbc.update("DELETE FROM areas_risco WHERE id = ?", area);
@@ -64,6 +65,11 @@ class AutenticacaoMoradorServiceTests {
         assertThat(temporario.getName()).doesNotContain(CPF);
         assertThatIllegalArgumentException().isThrownBy(() -> autenticacao.trocarSenha(temporario, "1234567"));
         autenticacao.trocarSenha(temporario, "12345678");
+        // Decisão de Pedro (22/11/2026): a primeira troca é auditada em nome do morador, sem senha nem hash.
+        String hash = jdbc.queryForObject("SELECT senha_hash FROM moradores WHERE id = ?", String.class, morador);
+        assertThat(jdbc.queryForList("SELECT acao || '|' || responsavel_id FROM registros_auditoria WHERE responsavel_tipo = 'MORADOR' AND responsavel_id = ?", String.class, morador))
+                .containsExactly("DEFINIR_SENHA_DEFINITIVA_MORADOR #" + morador + "|" + morador)
+                .allSatisfy(linha -> assertThat(linha).doesNotContain("12345678", TEMPORARIA, hash));
 
         assertThat(autenticacao.validarSessao(temporario)).isFalse();
         assertThat(autenticacao.autenticar(CPF, TEMPORARIA)).isEmpty();

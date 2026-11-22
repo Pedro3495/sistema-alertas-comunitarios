@@ -145,6 +145,10 @@ class MoradoresHttpTests {
         assertThat(salva.headers().firstValue("Location").orElseThrow()).endsWith("/morador/entrar?senhaAlterada");
         assertThat(morador.get("/morador/trocar-senha").headers().firstValue("Location").orElseThrow()).endsWith("/morador/entrar");
         assertThat(jdbc.queryForObject("SELECT troca_senha_obrigatoria FROM moradores WHERE id = ?", Boolean.class, id)).isFalse();
+        String hash = jdbc.queryForObject("SELECT senha_hash FROM moradores WHERE id = ?", String.class, id);
+        assertThat(jdbc.queryForList("SELECT acao FROM registros_auditoria WHERE responsavel_tipo = 'MORADOR' AND responsavel_id = ?", String.class, id))
+                .as("primeira troca auditada sem segredo").containsExactly("DEFINIR_SENHA_DEFINITIVA_MORADOR #" + id)
+                .allSatisfy(acao -> assertThat(acao).doesNotContain(DEFINITIVA, temporaria, hash));
 
         var negada = morador.post("/morador/entrar", morador.get("/morador/entrar").body(), Map.of("cpf", "52998224725", "senha", temporaria));
         assertThat(negada.headers().firstValue("Location").orElseThrow()).endsWith("/morador/entrar?erro");
@@ -283,7 +287,7 @@ class MoradoresHttpTests {
     }
 
     private List<String> acoes() {
-        return jdbc.queryForList("SELECT acao FROM registros_auditoria WHERE responsavel_tipo = 'REPRESENTANTE' AND responsavel_id = ? ORDER BY id", String.class, representante.getId());
+        return jdbc.queryForList("SELECT acao FROM registros_auditoria WHERE responsavel_tipo = 'REPRESENTANTE' AND responsavel_id = ? AND acao NOT LIKE 'DEFINIR_SENHA_DEFINITIVA_%' ORDER BY id", String.class, representante.getId()); // a primeira troca do preparo do ator não é a ação testada
     }
 
     private Navegador autenticado() throws Exception {
