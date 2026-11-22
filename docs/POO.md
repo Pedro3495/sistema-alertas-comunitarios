@@ -28,3 +28,7 @@ Isso acrescenta evidências de encapsulamento, abstração e substituição de d
 ## Gestão e auditoria
 
 A fachada `GestaoRepresentantesService` aplica autorização e transação do caso de uso; domínio/persistência não dependem de formulários. `AuditoriaService` exige transação existente para que histórico e manutenção sejam confirmados ou revertidos juntos. `RegistroAuditoria` não expõe setters e é mapeado como imutável; a interface oferece somente consulta. Os principals distintos impedem confundir a identidade do administrador com a do representante quando IDs ou logins coincidem.
+
+## Residências e áreas
+
+`Residencia` valida o endereço completo antes de alterar seus campos privados e mantém uma única referência de área. `ResidenciaService` coordena autorização, persistência e auditoria. `GestaoAreasService` acrescenta as regras da operação autenticada à base de áreas sem colocar decisões de autorização no formulário. Locks e FKs preservam os vínculos em transações concorrentes; a interface de consulta do repositório abstrai o mecanismo de persistência.
