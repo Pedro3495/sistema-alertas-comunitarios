@@ -239,6 +239,32 @@ class MoradoresHttpTests {
         verify(envio, times(2)).enviarCodigoRecuperacao(any(), any(), any());
     }
 
+    @Test
+    void moradorAlteraPreferenciasDeCanaisNoAplicativoComAuditoria() throws Exception {
+        long id = cadastrarPeloRepresentante();
+        jdbc.update("UPDATE moradores SET senha_hash = ?, troca_senha_obrigatoria = false WHERE id = ?", encoder.encode(DEFINITIVA), id);
+        assertThat(new Navegador().get("/morador/preferencias").statusCode()).as("anônimo").isEqualTo(403);
+        assertThat(autenticado().get("/morador/preferencias").statusCode()).as("representante").isEqualTo(403);
+        var morador = new Navegador();
+        morador.post("/morador/entrar", morador.get("/morador/entrar").body(), Map.of("cpf", "52998224725", "senha", DEFINITIVA));
+        assertThat(morador.get("/morador").body()).contains("href=\"/morador/preferencias\"");
+        String pagina = morador.get("/morador/preferencias").body();
+        assertThat(pagina).contains("<option value=\"SMS\" selected", "<option value=\"AMBOS\" selected", "outro disponível", "procure a entidade")
+                .doesNotContain("81900000001");
+        assertThat(morador.form("/morador/preferencias", Map.of("canalCredenciais", "WHATSAPP", "preferenciaAlertas", "SMS")).statusCode())
+                .as("sem CSRF").isEqualTo(403);
+        var invalida = morador.post("/morador/preferencias", pagina, Map.of("canalCredenciais", "EMAIL", "preferenciaAlertas", "SMS"));
+        assertThat(invalida.statusCode()).isEqualTo(200);
+        assertThat(invalida.body()).contains("Escolha SMS ou WhatsApp");
+        var salva = morador.post("/morador/preferencias", pagina, Map.of("canalCredenciais", "WHATSAPP", "preferenciaAlertas", "SMS"));
+        assertThat(salva.headers().firstValue("Location").orElseThrow()).endsWith("/morador/preferencias?salvas");
+        assertThat(morador.get("/morador/preferencias?salvas").body()).contains("Preferências salvas.", "<option value=\"WHATSAPP\" selected");
+        assertThat(jdbc.queryForMap("SELECT canal_credenciais, preferencia_alertas, celular FROM moradores WHERE id = ?", id))
+                .containsEntry("canal_credenciais", "WHATSAPP").containsEntry("preferencia_alertas", "SMS").containsEntry("celular", "81900000001");
+        assertThat(jdbc.queryForList("SELECT acao FROM registros_auditoria WHERE responsavel_tipo = 'MORADOR' AND responsavel_id = ?", String.class, id))
+                .containsExactly("ALTERAR_PREFERENCIAS_MORADOR #" + id);
+    }
+
     private long cadastrarPeloRepresentante() throws Exception {
         var navegador = autenticado();
         var resposta = navegador.post("/moradores/novo", navegador.get("/moradores/novo").body(), dados("52998224725", "81900000001", "SMS"));

@@ -37,6 +37,7 @@ class MoradorServiceTests {
     @Autowired RepresentanteService representantes;
     @Autowired AutenticacaoRepresentanteService acesso;
     @Autowired AdministradorService administradores;
+    @Autowired AutenticacaoMoradorService acessoMorador;
     @Autowired JdbcTemplate jdbc;
     @MockitoSpyBean AuditoriaService auditoria;
     @MockitoSpyBean EnvioCredenciais envio;
@@ -62,6 +63,9 @@ class MoradorServiceTests {
     void limparSomenteFixtures() {
         reset(auditoria, envio);
         SecurityContextHolder.clearContext();
+        jdbc.update("""
+                DELETE FROM registros_auditoria WHERE responsavel_tipo = 'MORADOR' AND responsavel_id IN
+                (SELECT id FROM moradores WHERE residencia_id IN (SELECT id FROM residencias WHERE area_id = ?))""", area);
         jdbc.update("DELETE FROM moradores WHERE residencia_id IN (SELECT id FROM residencias WHERE area_id = ?)", area);
         jdbc.update("DELETE FROM residencias WHERE area_id = ?", area);
         jdbc.update("DELETE FROM areas_risco WHERE id = ?", area);
@@ -186,6 +190,31 @@ class MoradorServiceTests {
         autenticar(ator, "REPRESENTANTE");
         representantes.desativar(representanteId);
         verificarNegacoes(morador.getId());
+    }
+
+    @Test
+    void moradorAlteraSoAsPropriasPreferenciasComAuditoriaEmSeuNome() {
+        var morador = cadastrar("Pessoa", "52998224725", "81900000001");
+        assertThatExceptionOfType(AccessDeniedException.class).as("representante não altera pelo morador")
+                .isThrownBy(() -> service.alterarPreferencias(CanalCredenciais.WHATSAPP, PreferenciaAlertas.SMS));
+        jdbc.update("UPDATE moradores SET senha_hash = ?, troca_senha_obrigatoria = false WHERE id = ?", encoder.encode("definitiva-morador"), morador.getId());
+        autenticar(acessoMorador.autenticar("52998224725", "definitiva-morador").orElseThrow(), "MORADOR");
+
+        assertThatIllegalArgumentException().isThrownBy(() -> service.alterarPreferencias(CanalCredenciais.WHATSAPP, null));
+        assertThat(acoesDoMorador(morador.getId())).isEmpty();
+        var alterado = service.alterarPreferencias(CanalCredenciais.WHATSAPP, PreferenciaAlertas.SMS);
+        assertThat(jdbc.queryForMap("SELECT canal_credenciais, preferencia_alertas, celular FROM moradores WHERE id = ?", morador.getId()))
+                .containsEntry("canal_credenciais", "WHATSAPP").containsEntry("preferencia_alertas", "SMS").containsEntry("celular", "81900000001");
+        assertThat(alterado.getId()).isEqualTo(morador.getId());
+        assertThat(acoesDoMorador(morador.getId())).containsExactly("ALTERAR_PREFERENCIAS_MORADOR #" + morador.getId());
+
+        jdbc.update("UPDATE moradores SET ativa = false WHERE id = ?", morador.getId());
+        assertThatExceptionOfType(AccessDeniedException.class)
+                .isThrownBy(() -> service.alterarPreferencias(CanalCredenciais.SMS, PreferenciaAlertas.AMBOS));
+    }
+
+    private List<String> acoesDoMorador(long id) {
+        return jdbc.queryForList("SELECT acao FROM registros_auditoria WHERE responsavel_tipo = 'MORADOR' AND responsavel_id = ? ORDER BY id", String.class, id);
     }
 
     @ParameterizedTest

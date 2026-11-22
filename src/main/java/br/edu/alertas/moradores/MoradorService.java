@@ -24,16 +24,17 @@ public class MoradorService {
     private final UsuarioAtual usuarios;
     private final AuditoriaService auditoria;
     private final EnvioCredenciais envio;
+    private final AutenticacaoMoradorService acessos;
     private final PasswordEncoder encoder;
     private final Clock clock;
     private static final SecureRandom ALEATORIO = new SecureRandom();
     private static final String ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
 
     public MoradorService(MoradorRepository repository, ResidenciaRepository residencias, UsuarioAtual usuarios,
-            AuditoriaService auditoria, EnvioCredenciais envio, PasswordEncoder encoder, Clock clock) {
+            AuditoriaService auditoria, EnvioCredenciais envio, AutenticacaoMoradorService acessos, PasswordEncoder encoder, Clock clock) {
         this.repository = repository; this.residencias = residencias;
         this.usuarios = usuarios; this.auditoria = auditoria;
-        this.envio = envio; this.encoder = encoder; this.clock = clock;
+        this.envio = envio; this.acessos = acessos; this.encoder = encoder; this.clock = clock;
     }
 
     @Transactional
@@ -86,6 +87,20 @@ public class MoradorService {
         morador.alterar(nomeCompleto, cpf, celular, residencia(residenciaId));
         repository.flush();
         auditoria.registrar("ALTERAR_MORADOR #" + id);
+        return morador;
+    }
+
+    /** Morador autenticado relido sob lock, para exibir as preferências atuais. */
+    @Transactional
+    public Morador proprio() { return acessos.bloquearAutor(usuarios.exigirMorador()); }
+
+    /** RF001 regra 6 e RF013 regra 3: o próprio morador altera canal e preferência, com auditoria em seu nome. */
+    @Transactional
+    public Morador alterarPreferencias(CanalCredenciais canal, PreferenciaAlertas preferencia) {
+        Morador morador = proprio();
+        morador.alterarPreferencias(canal, preferencia);
+        repository.flush();
+        auditoria.registrar("ALTERAR_PREFERENCIAS_MORADOR #" + morador.getId());
         return morador;
     }
 
