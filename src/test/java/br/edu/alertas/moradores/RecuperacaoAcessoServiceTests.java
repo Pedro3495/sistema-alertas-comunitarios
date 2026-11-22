@@ -11,6 +11,7 @@ import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,6 +57,7 @@ class RecuperacaoAcessoServiceTests {
     @AfterEach
     void limpar() {
         reset(envio);
+        jdbc.update("DELETE FROM registros_auditoria WHERE responsavel_tipo = 'MORADOR' AND responsavel_id = ?", morador);
         jdbc.update("DELETE FROM moradores WHERE residencia_id = ?", residencia);
         jdbc.update("DELETE FROM residencias WHERE id = ?", residencia);
         jdbc.update("DELETE FROM areas_risco WHERE id = ?", area);
@@ -150,6 +152,33 @@ class RecuperacaoAcessoServiceTests {
         String codigo = solicitar();
         jdbc.update("UPDATE moradores SET ativa = false WHERE id = ?", morador);
         assertThat(recuperacao.redefinirSenha(CELULAR, codigo, NOVA)).isFalse();
+    }
+
+    @Test
+    void tresPedidosPorHoraEmJanelaMovelComRecusaIgualAoSucessoEAuditoriaSemSegredo() {
+        String codigo = solicitar();
+        relogio(AGORA.plus(Duration.ofMinutes(20)));
+        reset(envio);
+        solicitar();
+        relogio(AGORA.plus(Duration.ofMinutes(40)));
+        reset(envio);
+        String terceiro = solicitar();
+        reset(envio);
+        relogio(AGORA.plus(Duration.ofMinutes(59)));
+        assertThat(recuperacao.solicitarCodigo(CELULAR)).as("4º: mesma resposta de telefone desconhecido")
+                .isEqualTo(recuperacao.solicitarCodigo("81900000099"));
+        verifyNoInteractions(envio);
+
+        relogio(AGORA.plus(Duration.ofHours(1)));
+        String liberado = solicitar();
+        assertThat(recuperacao.redefinirSenha(CELULAR, liberado, NOVA)).isTrue();
+
+        List<String> acoes = jdbc.queryForList("SELECT acao FROM registros_auditoria WHERE responsavel_tipo = 'MORADOR' AND responsavel_id = ? ORDER BY id",
+                String.class, morador);
+        assertThat(acoes).containsExactly(RecuperacaoAcessoService.PEDIDO, RecuperacaoAcessoService.PEDIDO, RecuperacaoAcessoService.PEDIDO,
+                RecuperacaoAcessoService.RECUSA_LIMITE, RecuperacaoAcessoService.PEDIDO,
+                RecuperacaoAcessoService.REDEFINICAO);
+        assertThat(String.join(" ", acoes)).doesNotContain(codigo, terceiro, liberado, NOVA);
     }
 
     private String solicitar() {

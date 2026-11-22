@@ -1,8 +1,10 @@
 package br.edu.alertas.moradores;
 
+import br.edu.alertas.auditoria.AuditoriaService;
 import br.edu.alertas.representantes.RepresentanteService;
 import java.security.SecureRandom;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.UUID;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,18 +15,25 @@ import org.springframework.transaction.annotation.Transactional;
 public class RecuperacaoAcessoService {
     public enum ResultadoEnvio { SOLICITADO, FALHA_ENVIO }
 
+    static final String PEDIDO = "SOLICITAR_CODIGO_RECUPERACAO";
+    static final String RECUSA_LIMITE = "RECUSAR_CODIGO_RECUPERACAO_LIMITE";
+    static final String REDEFINICAO = "REDEFINIR_SENHA_RECUPERACAO";
+    private static final int PEDIDOS_POR_HORA = 3; // decisão de Pedro, 22/11/2026
     private static final SecureRandom ALEATORIO = new SecureRandom();
     private final MoradorRepository repository;
     private final EnvioCredenciais envio;
     private final PasswordEncoder encoder;
     private final Clock clock;
+    private final AuditoriaService auditoria;
     private final String hashInexistente;
 
-    public RecuperacaoAcessoService(MoradorRepository repository, EnvioCredenciais envio, PasswordEncoder encoder, Clock clock) {
+    public RecuperacaoAcessoService(MoradorRepository repository, EnvioCredenciais envio, PasswordEncoder encoder, Clock clock,
+            AuditoriaService auditoria) {
         this.repository = repository;
         this.envio = envio;
         this.encoder = encoder;
         this.clock = clock;
+        this.auditoria = auditoria;
         hashInexistente = encoder.encode(UUID.randomUUID().toString());
     }
 
@@ -39,6 +48,12 @@ public class RecuperacaoAcessoService {
         Morador morador = celular == null ? null
                 : repository.buscarPorCelularComBloqueio(celular).filter(Morador::isAtiva).orElse(null);
         if (morador == null) { return ResultadoEnvio.SOLICITADO; }
+        // Janela móvel de 60 min; a recusa responde como sucesso para não revelar se o telefone tem conta.
+        if (auditoria.contarMorador(PEDIDO, morador.getId(), clock.instant().minus(Duration.ofHours(1))) >= PEDIDOS_POR_HORA) {
+            auditoria.registrarMorador(RECUSA_LIMITE, morador.getId());
+            return ResultadoEnvio.SOLICITADO;
+        }
+        auditoria.registrarMorador(PEDIDO, morador.getId());
         morador.emitirCodigoRecuperacao(hash, clock.instant());
         boolean aceito;
         try {
@@ -61,6 +76,8 @@ public class RecuperacaoAcessoService {
             encoder.matches(recebido, hashInexistente);
             return false;
         }
-        return morador.redefinirSenhaComCodigo(recebido, novoHash, clock.instant(), encoder);
+        boolean redefinida = morador.redefinirSenhaComCodigo(recebido, novoHash, clock.instant(), encoder);
+        if (redefinida) { auditoria.registrarMorador(REDEFINICAO, morador.getId()); }
+        return redefinida;
     }
 }

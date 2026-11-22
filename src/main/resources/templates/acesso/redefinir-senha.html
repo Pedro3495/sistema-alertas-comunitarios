@@ -10,7 +10,7 @@
 <header><a th:href="@{/}">Alertas comunitários</a></header>
 <main id="conteudo">
   <h1>Redefinir senha</h1>
-  <p class="introducao">Se o telefone estiver cadastrado, você receberá um código.</p>
+  <p class="introducao">Se o telefone estiver cadastrado, você receberá um código. São aceitos até 3 pedidos por hora; acima disso nenhum código é enviado.</p>
   <div class="mensagem erro" role="alert" th:if="${erroCodigo}">
     <p><strong>Código inválido.</strong></p>
     <p>O código vale por 10 minutos e para um único uso. Após 5 erros ele deixa de valer: solicite um novo código.</p>

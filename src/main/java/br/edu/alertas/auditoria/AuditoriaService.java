@@ -27,6 +27,18 @@ public class AuditoriaService {
         var ator = usuarios.exigirResponsavel();
         em.persist(new RegistroAuditoria(acao, ator.tipo(), ator.id(), clock.instant()));
     }
+    /** RF007: a recuperação é anônima; o responsável é o morador localizado pelo telefone. Nunca recebe código ou senha. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void registrarMorador(String acao, Long moradorId) {
+        em.persist(new RegistroAuditoria(acao, "MORADOR", moradorId, clock.instant()));
+    }
+    public long contarMorador(String acao, Long moradorId, Instant depoisDe) {
+        return em.createQuery("""
+                SELECT COUNT(r) FROM RegistroAuditoria r WHERE r.acao = :acao AND r.responsavelTipo = 'MORADOR'
+                AND r.responsavelId = :id AND r.ocorridoEm > :depoisDe""", Long.class)
+                .setParameter("acao", acao).setParameter("id", moradorId).setParameter("depoisDe", depoisDe)
+                .getSingleResult();
+    }
     public List<RegistroAuditoria> pesquisar(String responsavel, String acao, Instant inicio, Instant fim) {
         usuarios.exigirConsultaAuditoria();
         if (inicio != null && fim != null && inicio.isAfter(fim)) {
