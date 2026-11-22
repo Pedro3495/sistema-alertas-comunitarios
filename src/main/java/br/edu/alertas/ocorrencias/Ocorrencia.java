@@ -21,7 +21,8 @@ public class Ocorrencia {
     @Column(name = "especificacao_outros", columnDefinition = "text") private String especificacaoOutros;
     @Column(nullable = false, columnDefinition = "text") private String descricao;
     @Column(nullable = false, columnDefinition = "text") private String localizacao;
-    @Column(nullable = false, columnDefinition = "text") private String situacao = "EM_VERIFICACAO";
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "text") private SituacaoOcorrencia situacao = SituacaoOcorrencia.EM_VERIFICACAO;
     @ManyToOne(optional = false) @JoinColumn(name = "area_id", nullable = false) private AreaRisco area;
     @ManyToOne @JoinColumn(name = "representante_id") private Representante representante;
     @ManyToOne @JoinColumn(name = "morador_id") private Morador morador;
@@ -65,11 +66,14 @@ public class Ocorrencia {
     public String getEspecificacaoOutros() { return especificacaoOutros; }
     public String getDescricao() { return descricao; }
     public String getLocalizacao() { return localizacao; }
-    public String getSituacao() { return "Em verificação"; }
+    public String getSituacao() { return situacao.getRotulo(); }
     public Long getAreaId() { return area.getId(); }
     public String getAreaNome() { return area.getNome(); }
     public Long getRepresentanteId() { return representante == null ? null : representante.getId(); }
     public String getRepresentanteNome() { return representante == null ? null : representante.getNomeCompleto(); }
     public Long getMoradorId() { return morador == null ? null : morador.getId(); }
+    // RF008 regra 4: só para a tela do representante. Representante não tem celular cadastrado (RF004).
+    public String getAutorNome() { return morador != null ? morador.getNomeCompleto() : representante.getNomeCompleto(); }
+    public String getAutorCelular() { return morador == null ? null : morador.getCelular(); }
     public List<FotoOcorrencia> getFotos() { return List.copyOf(fotos); }
 }

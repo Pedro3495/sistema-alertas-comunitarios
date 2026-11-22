@@ -202,9 +202,44 @@ class OcorrenciasHttpTests extends OcorrenciasFixtures {
         assertThat(representanteNavegador.get("/ocorrencias/" + protocolo).statusCode()).isEqualTo(200);
         assertThat(representanteNavegador.get("/morador/ocorrencias/novo").statusCode()).isNotEqualTo(200);
 
-        var outro = moradorAutenticado(novoMorador(area));
+        var outro = moradorAutenticado(novoMorador(novaArea()));
         assertThat(outro.get("/morador/ocorrencias/" + protocolo).statusCode()).isEqualTo(404);
         assertThat(outro.bytes("/morador/ocorrencias/" + protocolo + "/fotos/1").statusCode()).isEqualTo(404);
+    }
+
+    // RF008 regras 1, 2 e 4 e pesquisa: vizinho vê o relato sem autor; representante vê nome e celular, sem CPF.
+    @Test
+    void consultaRegionalOcultaAutorParaMoradorEMostraNomeECelularAoRepresentante() throws Exception {
+        String cpf = novoMorador(area);
+        var autor = moradorAutenticado(cpf);
+        var resposta = autor.multipart(campos(UUID.randomUUID().toString()), List.of(imagem("png")), csrf(autor.get("/morador/ocorrencias/novo").body()), "image/png", "foto.png");
+        String protocolo = json(resposta.body(), "protocolo");
+        var dadosAutor = jdbc.queryForMap("SELECT nome_completo, celular FROM moradores WHERE cpf = ?", cpf);
+        String celular = (String) dadosAutor.get("celular");
+        var deOutraArea = service.registrar(new DadosOcorrencia(UUID.randomUUID(), TipoOcorrencia.OBRA, null, "D", "Outro local", novaArea(), List.of(imagem("png"))));
+
+        var vizinho = moradorAutenticado(novoMorador(area));
+        var lista = vizinho.get("/morador/ocorrencias");
+        assertThat(lista.statusCode()).isEqualTo(200);
+        assertThat(lista.body()).contains(protocolo, "Em verificação", "Ponte fictícia", "Todas as situações", "Não confirmada", "Encerrada")
+                .doesNotContain(deOutraArea.getProtocolo().toString(), "name=\"areaId\"", cpf, celular);
+        assertThat(vizinho.get("/morador/ocorrencias?tipo=OBRA").body()).doesNotContain(protocolo);
+        assertThat(vizinho.get("/morador/ocorrencias?protocolo=" + protocolo).body()).contains("/morador/ocorrencias/" + protocolo);
+        assertThat(vizinho.get("/morador/ocorrencias?protocolo=nao-e-protocolo").body()).contains("Protocolo inválido", "Nenhuma ocorrência encontrada.");
+        var detalhe = vizinho.get("/morador/ocorrencias/" + protocolo);
+        assertThat(detalhe.statusCode()).isEqualTo(200);
+        assertThat(detalhe.body()).contains("Descrição fictícia", "Ponte fictícia", "Em verificação", "/fotos/1")
+                .doesNotContain((String) dadosAutor.get("nome_completo"), cpf, celular, "data-rascunho-chave", "Ocorrência registrada");
+        assertThat(vizinho.get("/morador/ocorrencias/" + deOutraArea.getProtocolo()).statusCode()).isEqualTo(404);
+
+        var representanteNavegador = autenticado();
+        var listaRep = representanteNavegador.get("/ocorrencias?areaId=" + area);
+        assertThat(listaRep.body()).contains(protocolo, "name=\"areaId\"").doesNotContain(deOutraArea.getProtocolo().toString());
+        assertThat(representanteNavegador.get("/ocorrencias?situacao=CONFIRMADA&areaId=" + area).body()).doesNotContain(protocolo);
+        var detalheRep = representanteNavegador.get("/ocorrencias/" + protocolo).body();
+        assertThat(detalheRep).contains("Autor do relato", (String) dadosAutor.get("nome_completo"), "Celular do autor", celular).doesNotContain(cpf);
+        assertThat(representanteNavegador.get("/morador/ocorrencias").statusCode()).isNotEqualTo(200);
+        assertThat(vizinho.get("/ocorrencias").statusCode()).isIn(302, 403);
     }
 
     @Test

@@ -57,13 +57,13 @@ abstract class OcorrenciasFixtures {
         }
         for (long residencia : residencias) jdbc.update("DELETE FROM moradores WHERE residencia_id = ?", residencia);
         for (long residencia : residencias) jdbc.update("DELETE FROM residencias WHERE id = ?", residencia);
-        for (long extra : areasExtras) jdbc.update("DELETE FROM areas_risco WHERE id = ?", extra);
         for (long id : contas) {
             jdbc.update("DELETE FROM fotos_ocorrencia WHERE ocorrencia_id IN (SELECT id FROM ocorrencias WHERE representante_id = ?)", id);
             jdbc.update("DELETE FROM ocorrencias WHERE representante_id = ?", id);
             jdbc.update("DELETE FROM registros_auditoria WHERE responsavel_tipo = 'REPRESENTANTE' AND responsavel_id = ?", id);
             jdbc.update("DELETE FROM representantes WHERE id = ?", id);
         }
+        for (long extra : areasExtras) jdbc.update("DELETE FROM areas_risco WHERE id = ?", extra);
         jdbc.update("DELETE FROM areas_risco WHERE id = ?", area);
         if (loginAdmin != null) jdbc.update("DELETE FROM administradores WHERE login = ?", loginAdmin);
     }

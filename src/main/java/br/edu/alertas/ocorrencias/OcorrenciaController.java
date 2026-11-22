@@ -27,6 +27,41 @@ public class OcorrenciaController {
         this.service = service; this.areas = areas; this.usuarios = usuarios;
     }
 
+    // RF008: pesquisa por protocolo e filtros por tipo e situação; área só para o representante.
+    @GetMapping("/ocorrencias")
+    String lista(@RequestParam(defaultValue = "") String protocolo, @RequestParam(required = false) TipoOcorrencia tipo,
+            @RequestParam(required = false) SituacaoOcorrencia situacao, @RequestParam(required = false) Long areaId, Model model) {
+        var chave = filtros(protocolo, tipo, situacao, model);
+        model.addAttribute("areas", areas.findAll(Sort.by("nome")));
+        model.addAttribute("areaId", areaId);
+        model.addAttribute("ocorrencias", service.pesquisar(chave, tipo, situacao, areaId));
+        return "ocorrencias/lista";
+    }
+
+    @GetMapping("/morador/ocorrencias")
+    String listaDoMorador(@RequestParam(defaultValue = "") String protocolo, @RequestParam(required = false) TipoOcorrencia tipo,
+            @RequestParam(required = false) SituacaoOcorrencia situacao, Model model) {
+        var chave = filtros(protocolo, tipo, situacao, model);
+        model.addAttribute("morador", true);
+        model.addAttribute("ocorrencias", service.pesquisarDoMorador(chave, tipo, situacao));
+        return "ocorrencias/lista";
+    }
+
+    // Protocolo inválido vira o UUID nulo (nunca gerado por randomUUID), então a busca volta vazia com aviso.
+    private static UUID filtros(String protocolo, TipoOcorrencia tipo, SituacaoOcorrencia situacao, Model model) {
+        model.addAttribute("protocolo", protocolo);
+        model.addAttribute("tipo", tipo);
+        model.addAttribute("situacao", situacao);
+        model.addAttribute("tipos", TipoOcorrencia.values());
+        model.addAttribute("situacoes", SituacaoOcorrencia.values());
+        if (protocolo.isBlank()) { return null; }
+        try { return UUID.fromString(protocolo.strip()); }
+        catch (IllegalArgumentException exception) {
+            model.addAttribute("erro", "Protocolo inválido. Confira o código completo informado no registro.");
+            return new UUID(0, 0);
+        }
+    }
+
     @GetMapping("/ocorrencias/novo")
     String novo(Model model) {
         var ator = usuarios.exigirRepresentante();
@@ -113,7 +148,9 @@ public class OcorrenciaController {
         catch (EntityNotFoundException exception) { throw new ResponseStatusException(HttpStatus.NOT_FOUND); }
         model.addAttribute("morador", true);
         model.addAttribute("ocorrencia", ocorrencia);
-        model.addAttribute("rascunhoChave", "MORADOR:" + ocorrencia.getMoradorId());
+        // Só o autor limpa o rascunho; relato de terceiro (RF008 regra 2) não expõe dados do envio.
+        var ator = usuarios.exigirMorador();
+        if (ator.id().equals(ocorrencia.getMoradorId())) { model.addAttribute("rascunhoChave", "MORADOR:" + ator.id()); }
         return "ocorrencias/detalhe";
     }
 

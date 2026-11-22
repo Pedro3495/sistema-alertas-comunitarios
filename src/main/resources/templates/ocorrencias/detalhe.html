@@ -3,19 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ocorrência registrada · Alertas comunitários</title>
+  <title>Ocorrência · Alertas comunitários</title>
   <link rel="stylesheet" th:href="@{/css/ocorrencias.css}">
   <script defer th:src="@{/js/ocorrencias.js}"></script>
 </head>
 <body class="gestao" th:with="base=${morador} ? '/morador' : ''">
 <header class="cabecalho"><a th:href="${morador} ? @{/morador} : @{/representante}">Alertas comunitários</a>
-  <nav th:aria-label="${morador} ? 'Navegação do morador' : 'Navegação do representante'"><a th:href="@{__${base}__/ocorrencias/novo}">Registrar ocorrência</a>
+  <nav th:aria-label="${morador} ? 'Navegação do morador' : 'Navegação do representante'"><a th:href="@{__${base}__/ocorrencias}">Ocorrências</a><a th:href="@{__${base}__/ocorrencias/novo}">Registrar ocorrência</a>
     <form th:action="@{__${base}__/sair}" method="post"><button class="secundario" type="submit">Sair</button></form>
   </nav>
 </header>
 <main id="ocorrencia-detalhe" th:attr="data-rascunho-chave=${rascunhoChave},data-envio-id=${rascunhoChave != null ? ocorrencia.envioId : null}">
-  <h1>Ocorrência registrada</h1>
-  <p>Guarde o protocolo para identificar este registro.</p>
+  <h1 th:text="${rascunhoChave != null} ? 'Ocorrência registrada' : 'Ocorrência'"></h1>
+  <p th:if="${rascunhoChave != null}">Guarde o protocolo para identificar este registro.</p>
   <div class="mensagem protocolo"><h2>Protocolo</h2><p id="protocolo" th:text="${ocorrencia.protocolo}"></p></div>
   <p id="rascunho-status" role="status" aria-live="polite"></p>
   <dl class="dados-ocorrencia">
@@ -26,7 +26,9 @@
     <div><dt>Descrição do ocorrido</dt><dd class="descricao" th:text="${ocorrencia.descricao}"></dd></div>
     <div><dt>Localização do fato</dt><dd class="descricao" th:text="${ocorrencia.localizacao}"></dd></div>
     <div><dt>Área de risco</dt><dd th:text="${ocorrencia.areaNome}"></dd></div>
-    <div th:if="${ocorrencia.representanteNome != null}"><dt>Representante responsável</dt><dd th:text="${ocorrencia.representanteNome}"></dd></div>
+    <!-- RF008 regras 2 e 4: autor só na tela do representante, sem CPF. -->
+    <div th:unless="${morador}"><dt th:text="${ocorrencia.representanteId != null} ? 'Representante responsável' : 'Autor do relato'"></dt><dd th:text="${ocorrencia.autorNome}"></dd></div>
+    <div th:if="${morador == null and ocorrencia.autorCelular != null}"><dt>Celular do autor</dt><dd th:text="${ocorrencia.autorCelular}"></dd></div>
   </dl>
   <section aria-labelledby="titulo-evidencias">
     <h2 id="titulo-evidencias">Fotos do ocorrido</h2>
@@ -43,6 +45,7 @@
     </ul>
   </section>
   <p class="orientacao">O registro e suas evidências são preservados. Não é possível excluir a ocorrência nem remover ou substituir as fotos enviadas.</p>
+  <p class="voltar"><a th:href="@{__${base}__/ocorrencias}">Ver ocorrências</a></p>
   <p class="voltar"><a th:href="${morador} ? @{/morador/ocorrencias/novo} : @{/ocorrencias/novo}">Registrar outra ocorrência</a></p>
   <p class="voltar"><a th:href="${morador} ? @{/morador} : @{/representante}">Voltar para início</a></p>
 </main>

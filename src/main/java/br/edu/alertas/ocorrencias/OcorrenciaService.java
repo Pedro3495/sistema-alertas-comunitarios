@@ -9,6 +9,7 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.time.Clock;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -70,12 +71,28 @@ public class OcorrenciaService {
         return ocorrencia;
     }
 
-    // shortcut: o morador vê só a confirmação dos próprios registros; a consulta regional fica para o RF008.
-    public Ocorrencia buscarDoMorador(UUID protocolo) {
-        var ator = usuarios.exigirMorador();
-        return repository.findByProtocoloAndMorador_Id(protocolo, ator.id()).orElseThrow(() -> new EntityNotFoundException("Ocorrência não encontrada."));
+    /** RF008 regra 4: representante consulta todas as áreas e pode filtrar por área. */
+    // shortcut: sem paginação, a lista traz todas as ocorrências filtradas; paginar quando o volume exigir.
+    public List<ResumoOcorrencia> pesquisar(UUID protocolo, TipoOcorrencia tipo, SituacaoOcorrencia situacao, Long areaId) {
+        usuarios.exigirRepresentante();
+        return repository.pesquisar(protocolo, tipo, situacao, areaId, null, null);
     }
 
+    /** RF008 regras 1 e 5: próprios relatos (mesmo de área antiga) e relatos da área atual da residência. */
+    @Transactional // a leitura com lock (de bloquearAutor) não roda em transação somente leitura no PostgreSQL
+    public List<ResumoOcorrencia> pesquisarDoMorador(UUID protocolo, TipoOcorrencia tipo, SituacaoOcorrencia situacao) {
+        var morador = moradores.bloquearAutor(usuarios.exigirMorador()); // relê a residência atual e revalida a sessão
+        return repository.pesquisar(protocolo, tipo, situacao, null, morador.getId(), morador.getAreaId());
+    }
+
+    @Transactional
+    public Ocorrencia buscarDoMorador(UUID protocolo) {
+        var morador = moradores.bloquearAutor(usuarios.exigirMorador());
+        return repository.buscarVisivelAoMorador(protocolo, morador.getId(), morador.getAreaId())
+                .orElseThrow(() -> new EntityNotFoundException("Ocorrência não encontrada."));
+    }
+
+    @Transactional
     public FotoOcorrencia fotoDoMorador(UUID protocolo, int ordem) {
         return foto(buscarDoMorador(protocolo), ordem);
     }
