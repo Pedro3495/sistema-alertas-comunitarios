@@ -1,0 +1,2 @@
+@import url("gestao.css");
+button:disabled { background: #ddd; color: #555; border-color: #ccc; cursor: not-allowed; }
