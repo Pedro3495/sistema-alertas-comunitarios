@@ -1,12 +1,13 @@
 package br.edu.alertas.representantes;
 
+import br.edu.alertas.acesso.BloqueioLogin;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -39,11 +40,8 @@ public class Representante {
     @Column(name = "senha_temporaria_expira_em", nullable = false)
     private Instant senhaTemporariaExpiraEm;
 
-    @Column(name = "falhas_login", nullable = false)
-    private int falhasLogin;
-
-    @Column(name = "bloqueado_ate")
-    private Instant bloqueadoAte;
+    @Embedded
+    private BloqueioLogin bloqueio = new BloqueioLogin();
 
     @Column(name = "versao_credencial", nullable = false)
     private long versaoCredencial;
@@ -96,10 +94,7 @@ public class Representante {
     }
 
     boolean loginBloqueado(Instant agora) {
-        if (bloqueadoAte != null && !agora.isBefore(bloqueadoAte)) {
-            registrarLoginCorreto();
-        }
-        return bloqueadoAte != null;
+        return bloqueio.bloqueado(agora);
     }
 
     boolean temporariaValida(Instant agora) {
@@ -107,15 +102,11 @@ public class Representante {
     }
 
     void registrarFalhaLogin(Instant agora) {
-        falhasLogin++;
-        if (falhasLogin == 5) {
-            bloqueadoAte = agora.plus(Duration.ofMinutes(15));
-        }
+        bloqueio.registrarFalha(agora);
     }
 
     void registrarLoginCorreto() {
-        falhasLogin = 0;
-        bloqueadoAte = null;
+        bloqueio.zerar();
     }
 
     AcessoRepresentante acesso() {

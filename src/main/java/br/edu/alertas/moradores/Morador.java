@@ -1,8 +1,10 @@
 package br.edu.alertas.moradores;
 
+import br.edu.alertas.acesso.BloqueioLogin;
 import br.edu.alertas.residencias.Residencia;
 import jakarta.persistence.*;
 import java.time.Instant;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Entity
 @Table(name = "moradores")
@@ -32,6 +34,12 @@ public class Morador {
     private Instant senhaTemporariaExpiraEm;
     @Column(name = "credenciais_pendentes", nullable = false)
     private boolean credenciaisPendentes = true;
+    @Column(name = "troca_senha_obrigatoria", nullable = false)
+    private boolean trocaSenhaObrigatoria = true;
+    @Embedded
+    private BloqueioLogin bloqueio = new BloqueioLogin();
+    @Column(name = "versao_credencial", nullable = false)
+    private long versaoCredencial;
 
     protected Morador() { }
 
@@ -51,6 +59,7 @@ public class Morador {
             throw new IllegalArgumentException("Informe o celular com DDD e 11 dígitos.");
         }
         if (residencia == null) { throw new IllegalArgumentException("Selecione uma residência cadastrada."); }
+        if (this.cpf != null && !this.cpf.equals(cpf)) { versaoCredencial++; } // sessão aberta com o CPF antigo deixa de valer
         nomeCompleto = nome;
         this.cpf = cpf;
         this.celular = celular;
@@ -62,6 +71,8 @@ public class Morador {
         senhaHash = hash;
         senhaTemporariaExpiraEm = expiraEm;
         credenciaisPendentes = true;
+        trocaSenhaObrigatoria = true;
+        versaoCredencial++;
     }
 
     void registrarEnvio(boolean aceito) { credenciaisPendentes = !aceito; }
@@ -78,7 +89,24 @@ public class Morador {
         return true;
     }
 
-    void desativar() { ativa = false; }
+    // Conta sem senha emitida (base anterior à V10) nunca autentica.
+    boolean conferirSenha(String senha, PasswordEncoder encoder) { return senhaHash != null && encoder.matches(senha, senhaHash); }
+    boolean loginBloqueado(Instant agora) { return bloqueio.bloqueado(agora); }
+    void registrarFalhaLogin(Instant agora) { bloqueio.registrarFalha(agora); }
+    void registrarLoginCorreto() { bloqueio.zerar(); }
+    boolean temporariaValida(Instant agora) { return !trocaSenhaObrigatoria || agora.isBefore(senhaTemporariaExpiraEm); }
+    AcessoMorador acesso() { return new AcessoMorador(id, versaoCredencial, trocaSenhaObrigatoria); }
+    boolean validarSessao(AcessoMorador acesso, Instant agora) {
+        return ativa && senhaHash != null && id.equals(acesso.id()) && versaoCredencial == acesso.versaoCredencial()
+                && trocaSenhaObrigatoria == acesso.trocaSenhaObrigatoria() && temporariaValida(agora);
+    }
+    void definirSenhaDefinitiva(String hash) {
+        senhaHash = hash;
+        trocaSenhaObrigatoria = false;
+        versaoCredencial++;
+    }
+
+    void desativar() { if (ativa) { versaoCredencial++; } ativa = false; }
     void reativar() { ativa = true; }
     public Long getId() { return id; }
     public String getNomeCompleto() { return nomeCompleto; }
@@ -89,6 +117,7 @@ public class Morador {
     public CanalCredenciais getCanalCredenciais() { return canalCredenciais; }
     public PreferenciaAlertas getPreferenciaAlertas() { return preferenciaAlertas; }
     public boolean isAtiva() { return ativa; }
+    public boolean isTrocaSenhaObrigatoria() { return trocaSenhaObrigatoria; }
     public boolean isCredenciaisPendentes() { return credenciaisPendentes; }
     public Instant getSenhaTemporariaExpiraEm() { return senhaTemporariaExpiraEm; }
 }

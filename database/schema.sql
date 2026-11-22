@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict bjjTnDF89aQlZwKyX5Fx9pOeU2P9LoqGR5Vk4QDeXVaaEMpWaOJHCwYnDh9WtlD
+\restrict xUwFeQgZpC2tZNbPpxWt4QPr7qdPYvMYMleR4Uuh6wchYhalcm8VAPa4I0Ekvsb
 
 -- Dumped from database version 17.10
 -- Dumped by pg_dump version 17.10
@@ -115,7 +115,13 @@ CREATE TABLE public.moradores (
     senha_hash text,
     senha_temporaria_expira_em timestamp with time zone,
     credenciais_pendentes boolean DEFAULT true NOT NULL,
+    troca_senha_obrigatoria boolean DEFAULT true NOT NULL,
+    falhas_login integer DEFAULT 0 NOT NULL,
+    bloqueado_ate timestamp with time zone,
+    versao_credencial bigint DEFAULT 0 NOT NULL,
+    CONSTRAINT ck_moradores_falhas_login CHECK (((falhas_login >= 0) AND (falhas_login <= 5))),
     CONSTRAINT ck_moradores_senha_temporaria CHECK (((senha_hash IS NULL) = (senha_temporaria_expira_em IS NULL))),
+    CONSTRAINT ck_moradores_versao_credencial CHECK ((versao_credencial >= 0)),
     CONSTRAINT moradores_canal_credenciais_check CHECK ((canal_credenciais = ANY (ARRAY['SMS'::text, 'WHATSAPP'::text]))),
     CONSTRAINT moradores_celular_check CHECK ((celular ~ '^[0-9]{11}$'::text)),
     CONSTRAINT moradores_cpf_check CHECK ((cpf ~ '^[0-9]{11}$'::text)),
@@ -436,4 +442,4 @@ ALTER TABLE ONLY public.residencias
 -- PostgreSQL database dump complete
 --
 
-\unrestrict bjjTnDF89aQlZwKyX5Fx9pOeU2P9LoqGR5Vk4QDeXVaaEMpWaOJHCwYnDh9WtlD
+\unrestrict xUwFeQgZpC2tZNbPpxWt4QPr7qdPYvMYMleR4Uuh6wchYhalcm8VAPa4I0Ekvsb

@@ -119,6 +119,79 @@ class MoradoresHttpTests {
         verifyNoInteractions(envio);
     }
 
+    @Test
+    void moradorCadastradoEntraComCpfTrocaTemporariaEUsaSenhaDefinitiva() throws Exception {
+        long id = cadastrarPeloRepresentante();
+        String temporaria = senhaEnviada();
+        var morador = new Navegador();
+        assertThat(morador.get("/morador").headers().firstValue("Location").orElseThrow()).endsWith("/morador/entrar");
+        String pagina = morador.get("/morador/entrar").body();
+        assertThat(pagina).contains("CPF", "senha temporária");
+        assertThat(morador.form("/morador/entrar", Map.of("cpf", "52998224725", "senha", temporaria)).statusCode())
+                .as("sem CSRF").isEqualTo(403);
+        var entrada = morador.post("/morador/entrar", pagina, Map.of("cpf", "529.982.247-25", "senha", temporaria));
+        assertThat(entrada.headers().firstValue("Location").orElseThrow()).endsWith("/morador/trocar-senha");
+        assertThat(morador.get("/morador").statusCode()).as("temporária não dá acesso").isEqualTo(403);
+        assertThat(morador.get("/moradores").statusCode()).isEqualTo(403);
+        assertThat(morador.get("/representante").statusCode()).isEqualTo(403);
+
+        String troca = morador.get("/morador/trocar-senha").body();
+        var curta = morador.post("/morador/trocar-senha", troca, Map.of("novaSenha", "1234567"));
+        assertThat(curta.body()).contains("Use no mínimo 8 caracteres.").doesNotContain("1234567\"");
+        var salva = morador.post("/morador/trocar-senha", curta.body(), Map.of("novaSenha", DEFINITIVA));
+        assertThat(salva.headers().firstValue("Location").orElseThrow()).endsWith("/morador/entrar?senhaAlterada");
+        assertThat(morador.get("/morador/trocar-senha").headers().firstValue("Location").orElseThrow()).endsWith("/morador/entrar");
+        assertThat(jdbc.queryForObject("SELECT troca_senha_obrigatoria FROM moradores WHERE id = ?", Boolean.class, id)).isFalse();
+
+        var negada = morador.post("/morador/entrar", morador.get("/morador/entrar").body(), Map.of("cpf", "52998224725", "senha", temporaria));
+        assertThat(negada.headers().firstValue("Location").orElseThrow()).endsWith("/morador/entrar?erro");
+        var definitiva = morador.post("/morador/entrar", morador.get("/morador/entrar").body(), Map.of("cpf", "52998224725", "senha", DEFINITIVA));
+        assertThat(definitiva.headers().firstValue("Location").orElseThrow()).endsWith("/morador");
+        String inicio = morador.get("/morador").body();
+        assertThat(inicio).contains("Você entrou na sua conta").doesNotContain("52998224725", "81900000001");
+        assertThat(morador.get("/moradores").statusCode()).as("morador não usa funções da entidade").isEqualTo(403);
+        var saida = morador.post("/morador/sair", inicio, Map.of());
+        assertThat(saida.headers().firstValue("Location").orElseThrow()).endsWith("/morador/entrar?saiu");
+        assertThat(morador.get("/morador").headers().firstValue("Location").orElseThrow()).endsWith("/morador/entrar");
+
+        morador.post("/morador/entrar", morador.get("/morador/entrar").body(), Map.of("cpf", "52998224725", "senha", DEFINITIVA));
+        assertThat(morador.get("/morador").statusCode()).isEqualTo(200);
+        jdbc.update("UPDATE moradores SET ativa = false WHERE id = ?", id);
+        assertThat(morador.get("/morador").headers().firstValue("Location").orElseThrow())
+                .as("desativação encerra sessão existente").endsWith("/morador/entrar?expirado");
+    }
+
+    @Test
+    void cincoFalhasHttpBloqueiamOMoradorComMensagemGenericaSemDevolverSenha() throws Exception {
+        long id = cadastrarPeloRepresentante();
+        String temporaria = senhaEnviada();
+        var morador = new Navegador();
+        for (int i = 0; i < 5; i++) {
+            var falha = morador.post("/morador/entrar", morador.get("/morador/entrar").body(), Map.of("cpf", "52998224725", "senha", "errada-ficticia"));
+            assertThat(falha.headers().firstValue("Location").orElseThrow()).endsWith("/morador/entrar?erro");
+        }
+        assertThat(jdbc.queryForObject("SELECT falhas_login FROM moradores WHERE id = ?", Integer.class, id)).isEqualTo(5);
+        var bloqueada = morador.post("/morador/entrar", morador.get("/morador/entrar").body(), Map.of("cpf", "52998224725", "senha", temporaria));
+        assertThat(bloqueada.headers().firstValue("Location").orElseThrow()).endsWith("/morador/entrar?erro");
+        String erro = morador.get("/morador/entrar?erro").body();
+        assertThat(erro).contains("Não foi possível entrar", "15 minutos", "value=\"52998224725\"").doesNotContain(temporaria, "errada-ficticia");
+        var inexistente = new Navegador();
+        var desconhecido = inexistente.post("/morador/entrar", inexistente.get("/morador/entrar").body(), Map.of("cpf", "11144477735", "senha", "qualquer-ficticia"));
+        assertThat(desconhecido.headers().firstValue("Location").orElseThrow()).endsWith("/morador/entrar?erro");
+    }
+
+    private long cadastrarPeloRepresentante() throws Exception {
+        var navegador = autenticado();
+        var resposta = navegador.post("/moradores/novo", navegador.get("/moradores/novo").body(), dados("52998224725", "81900000001", "SMS"));
+        return Long.parseLong(URI.create(resposta.headers().firstValue("Location").orElseThrow()).getPath().substring("/moradores/".length()));
+    }
+
+    private String senhaEnviada() {
+        var senhas = ArgumentCaptor.forClass(String.class);
+        verify(envio).enviarSenhaTemporaria(eq(CanalCredenciais.SMS), eq("81900000001"), senhas.capture());
+        return senhas.getValue();
+    }
+
     private Map<String, String> dados(String cpf, String celular, String canal) {
         return Map.of("nomeCompleto", "Pessoa Fictícia", "cpf", cpf, "celular", celular, "residenciaId", Long.toString(residencia),
                 "canalCredenciais", canal, "preferenciaAlertas", "AMBOS");

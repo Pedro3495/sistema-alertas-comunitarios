@@ -11,7 +11,7 @@
 <main id="conteudo">
   <h1>Crie sua nova senha</h1>
   <p class="introducao">Troque a senha temporária para continuar.</p>
-  <form th:action="@{/trocar-senha}" method="post">
+  <form th:action="@{|${base ?: ''}/trocar-senha|}" method="post">
     <div class="campo">
       <label for="novaSenha">Nova senha</label>
       <input id="novaSenha" name="novaSenha" type="password" autocomplete="new-password" required
@@ -21,7 +21,7 @@
     </div>
     <button type="submit">Salvar nova senha</button>
   </form>
-  <form class="sair" th:action="@{/sair}" method="post">
+  <form class="sair" th:action="@{|${base ?: ''}/sair|}" method="post">
     <button class="secundario" type="submit">Sair da conta</button>
   </form>
 </main>
