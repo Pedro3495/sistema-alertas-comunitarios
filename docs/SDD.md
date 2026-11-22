@@ -30,7 +30,12 @@ Revisão independente de subagente é evidência de revisão técnica, não apro
 | Base de áreas, cadastro/alteração/pesquisa | RF003 / #14 | PR #16 em revisão |
 | Base de representantes, credenciais protegidas e manutenção | RF004 / #15 | Implementação parcial e 43 testes de representantes prontos; 67 no conjunto. Aguardando revisão/integração; contrato em `specs/entregas/RF004-base.md` |
 | Autenticação de representantes e troca inicial | RF005 + RF004 / #18 | Login web, primeira troca, bloqueio e revogação implementados; 97 testes no conjunto. Contrato `specs/entregas/RF005-representantes.md`, evidências `docs/acesso/README.md`; aguardando revisão/integração |
-| Autorização do administrador, auditoria e telas protegidas | RF004 + RF013 | Gestão de representantes e consulta de auditoria implementadas;119testes; conta única por comando local aprovado, sem seed. Ver `docs/administracao/README.md`; aguardando integração |
+| Autorização do administrador, auditoria e telas protegidas | RF004 + RF013 | Gestão de representantes e consulta de auditoria implementadas; 119 testes; conta única por comando local aprovado, sem seed. Ver `docs/administracao/README.md`; aguardando integração |
+| Gestão web de áreas e residências | RF002/RF003 / #21 | 136 testes; FK real e auditoria, aguardando revisão/integração. Limites em `docs/residencias/README.md` |
 | Cadastros e acesso de moradores, ocorrências e alertas | RF001–RF013, conforme dependências | Continuam no escopo aprovado, sem funções fictícias ou mocks declarados prontos |
 
 Não criar datas de entrega ou metas técnicas que não foram informadas. Solicitar decisão de Pedro quando faltar uma regra indispensável; continuar o trabalho que não depende da resposta.
+
+## Lacuna confirmada
+
+O usuário informou que ainda não escolheu o provedor de SMS/WhatsApp. Envio real de credenciais e códigos não está implementado nem deve ser simulado como entregue. Escolher/configurar o provedor é a próxima decisão externa para esses fluxos; outras funções independentes continuam previstas nas specs.
