@@ -170,6 +170,65 @@ class OcorrenciasHttpTests extends OcorrenciasFixtures {
         assertThat(navegador.multipart(campos(UUID.randomUUID().toString()), List.of(imagem("png")), token, "image/png", "foto.png").statusCode()).isEqualTo(403);
     }
 
+    // RF006 regras 1, 4, 5 e 9 para o morador: login real por CPF, área da residência e rascunho por conta.
+    @Test
+    void moradorRegistraPeloNavegadorNaAreaDaResidenciaEVeSoOProprioRegistro() throws Exception {
+        String cpf = novoMorador(area);
+        long outraArea = novaArea();
+        var morador = moradorAutenticado(cpf);
+        String formulario = morador.get("/morador/ocorrencias/novo").body();
+        assertThat(formulario).contains("Área RF006", "action=\"/morador/ocorrencias\"", "data-rascunho-chave=\"MORADOR:")
+                .doesNotContain("Outra área RF006", "Selecione uma área cadastrada");
+        var campos = campos(UUID.randomUUID().toString());
+        campos.put("areaId", Long.toString(outraArea)); // forjado: deve ser ignorado
+        var resposta = morador.multipart(campos, List.of(imagem("png")), csrf(formulario), "image/png", "foto.png");
+        assertThat(resposta.statusCode()).isEqualTo(200);
+        String protocolo = json(resposta.body(), "protocolo");
+        assertThat(json(resposta.body(), "detalheUrl")).isEqualTo("/morador/ocorrencias/" + protocolo);
+        var salvo = jdbc.queryForMap("SELECT area_id, morador_id, representante_id FROM ocorrencias WHERE protocolo = ?::uuid", protocolo);
+        assertThat(salvo.get("area_id")).isEqualTo(area);
+        assertThat(salvo.get("representante_id")).isNull();
+        long moradorId = ((Number) salvo.get("morador_id")).longValue();
+        assertThat(acoesDoMorador(moradorId)).containsExactly("REGISTRAR_OCORRENCIA #" + protocolo);
+
+        var detalhe = morador.get("/morador/ocorrencias/" + protocolo);
+        assertThat(detalhe.statusCode()).isEqualTo(200);
+        assertThat(detalhe.body()).contains(protocolo, "Em verificação", "Área RF006", "data-rascunho-chave=\"MORADOR:" + moradorId,
+                "/morador/ocorrencias/" + protocolo + "/fotos/1").doesNotContain("Representante responsável");
+        assertThat(morador.bytes("/morador/ocorrencias/" + protocolo + "/fotos/1").body()).containsExactly(imagem("png"));
+
+        // O representante consulta pelo protocolo sem quebrar por falta de representante autor.
+        var representanteNavegador = autenticado();
+        assertThat(representanteNavegador.get("/ocorrencias/" + protocolo).statusCode()).isEqualTo(200);
+        assertThat(representanteNavegador.get("/morador/ocorrencias/novo").statusCode()).isNotEqualTo(200);
+
+        var outro = moradorAutenticado(novoMorador(area));
+        assertThat(outro.get("/morador/ocorrencias/" + protocolo).statusCode()).isEqualTo(404);
+        assertThat(outro.bytes("/morador/ocorrencias/" + protocolo + "/fotos/1").statusCode()).isEqualTo(404);
+    }
+
+    @Test
+    void moradorNaoUsaRotasDoRepresentanteENemEnviaSemCsrf() throws Exception {
+        var morador = moradorAutenticado(novoMorador(area));
+        var salvo = service.registrar(dados(UUID.randomUUID()));
+        assertThat(morador.get("/ocorrencias/novo").statusCode()).isIn(302, 403);
+        assertThat(morador.get("/ocorrencias/" + salvo.getProtocolo()).statusCode()).isIn(302, 403);
+        assertThat(morador.multipart(campos(UUID.randomUUID().toString()), List.of(imagem("png")), null, "image/png", "foto.png").statusCode()).isEqualTo(403);
+        var anonimo = new Navegador();
+        anonimo.destino = "/morador/ocorrencias";
+        assertThat(anonimo.get("/morador/ocorrencias/novo").statusCode()).isEqualTo(403);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM ocorrencias WHERE morador_id IS NOT NULL AND area_id = ?", Long.class, area)).isZero();
+    }
+
+    private Navegador moradorAutenticado(String cpf) throws Exception {
+        var navegador = new Navegador();
+        navegador.destino = "/morador/ocorrencias";
+        var entrada = navegador.form("POST", "/morador/entrar", Map.of("cpf", cpf, "senha", DEFINITIVA, "_csrf", csrf(navegador.get("/morador/entrar").body())));
+        assertThat(entrada.headers().firstValue("Location").orElseThrow()).endsWith("/morador");
+        assertThat(navegador.get("/morador/ocorrencias/novo").statusCode()).isEqualTo(200);
+        return navegador;
+    }
+
     private void erro(HttpResponse<String> resposta, String campo) {
         assertThat(resposta.statusCode()).isEqualTo(400);
         assertThat(resposta.headers().firstValue("Content-Type").orElseThrow()).contains("application/json");
@@ -216,6 +275,7 @@ class OcorrenciasHttpTests extends OcorrenciasFixtures {
     }
 
     private class Navegador {
+        String destino = "/ocorrencias";
         final HttpClient client = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL))
                 .followRedirects(HttpClient.Redirect.NEVER).connectTimeout(Duration.ofSeconds(10)).build();
         HttpRequest.Builder request(String path) { return HttpRequest.newBuilder(URI.create("http://localhost:" + port + path)).timeout(Duration.ofSeconds(25)); }
@@ -240,7 +300,7 @@ class OcorrenciasHttpTests extends OcorrenciasFixtures {
                 body.write("\r\n".getBytes(StandardCharsets.UTF_8));
             }
             body.write(("--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
-            var request = request("/ocorrencias").header("Content-Type", "multipart/form-data; boundary=" + boundary);
+            var request = request(destino).header("Content-Type", "multipart/form-data; boundary=" + boundary);
             if (token != null) request.header("X-CSRF-TOKEN", token);
             return client.send(request.POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray())).build(), HttpResponse.BodyHandlers.ofString());
         }

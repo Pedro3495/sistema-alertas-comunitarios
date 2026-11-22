@@ -17,7 +17,7 @@ public class Morador {
     private String cpf;
     @Column(nullable = false, columnDefinition = "text")
     private String celular;
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, cascade = CascadeType.REFRESH) // refresh revela a área atual da residência (RF006 regra 4)
     @JoinColumn(name = "residencia_id", nullable = false)
     private Residencia residencia;
     @Enumerated(EnumType.STRING)
@@ -127,6 +127,7 @@ public class Morador {
     public String getCelular() { return celular; }
     public Long getResidenciaId() { return residencia.getId(); }
     public Long getAreaId() { return residencia.getAreaId(); }
+    public String getAreaNome() { return residencia.getAreaNome(); }
     public CanalCredenciais getCanalCredenciais() { return canalCredenciais; }
     public PreferenciaAlertas getPreferenciaAlertas() { return preferenciaAlertas; }
     public boolean isAtiva() { return ativa; }

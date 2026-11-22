@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 9vfSINgh0n28qPI80AiBefOmbQ0K2ppgpnzFxV1hgTdVGmk3Jwom5bPhCKlRBLU
+\restrict gb7vJaPoPUOlLdJYFYTLvq2pYMFxsNS8W0ltnOJTSaKORn675Z6Pzh0OqBfDhQy
 
 -- Dumped from database version 17.10
 -- Dumped by pg_dump version 17.10
@@ -166,8 +166,10 @@ CREATE TABLE public.ocorrencias (
     localizacao text NOT NULL,
     situacao text NOT NULL,
     area_id bigint NOT NULL,
-    representante_id bigint NOT NULL,
+    representante_id bigint,
+    morador_id bigint,
     CONSTRAINT ck_ocorrencias_outros CHECK (((tipo <> 'OUTROS'::text) OR ((especificacao_outros IS NOT NULL) AND (especificacao_outros ~ '[^[:space:]]'::text)))),
+    CONSTRAINT ck_ocorrencias_um_autor CHECK (((representante_id IS NULL) <> (morador_id IS NULL))),
     CONSTRAINT ocorrencias_descricao_check CHECK ((descricao ~ '[^[:space:]]'::text)),
     CONSTRAINT ocorrencias_localizacao_check CHECK ((localizacao ~ '[^[:space:]]'::text)),
     CONSTRAINT ocorrencias_situacao_check CHECK ((situacao = 'EM_VERIFICACAO'::text)),
@@ -201,7 +203,7 @@ CREATE TABLE public.registros_auditoria (
     ocorrido_em timestamp with time zone NOT NULL,
     CONSTRAINT registros_auditoria_acao_check CHECK ((length(TRIM(BOTH FROM acao)) > 0)),
     CONSTRAINT registros_auditoria_responsavel_id_check CHECK ((responsavel_id > 0)),
-    CONSTRAINT registros_auditoria_responsavel_tipo_check CHECK ((responsavel_tipo = ANY (ARRAY['ADMINISTRADOR'::text, 'REPRESENTANTE'::text])))
+    CONSTRAINT registros_auditoria_responsavel_tipo_check CHECK ((responsavel_tipo = ANY (ARRAY['ADMINISTRADOR'::text, 'REPRESENTANTE'::text, 'MORADOR'::text])))
 );
 
 
@@ -397,6 +399,14 @@ ALTER TABLE ONLY public.ocorrencias
 
 
 --
+-- Name: ocorrencias uk_ocorrencias_envio_morador; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ocorrencias
+    ADD CONSTRAINT uk_ocorrencias_envio_morador UNIQUE (morador_id, envio_id);
+
+
+--
 -- Name: representantes uk_representantes_login; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -429,6 +439,14 @@ ALTER TABLE ONLY public.ocorrencias
 
 
 --
+-- Name: ocorrencias ocorrencias_morador_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ocorrencias
+    ADD CONSTRAINT ocorrencias_morador_id_fkey FOREIGN KEY (morador_id) REFERENCES public.moradores(id) ON DELETE RESTRICT;
+
+
+--
 -- Name: ocorrencias ocorrencias_representante_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -448,4 +466,4 @@ ALTER TABLE ONLY public.residencias
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 9vfSINgh0n28qPI80AiBefOmbQ0K2ppgpnzFxV1hgTdVGmk3Jwom5bPhCKlRBLU
+\unrestrict gb7vJaPoPUOlLdJYFYTLvq2pYMFxsNS8W0ltnOJTSaKORn675Z6Pzh0OqBfDhQy

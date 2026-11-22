@@ -1,10 +1,13 @@
 package br.edu.alertas.moradores;
 
 import br.edu.alertas.representantes.RepresentanteService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -14,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class AutenticacaoMoradorService {
+    @PersistenceContext private EntityManager em;
     private final MoradorRepository repository;
     private final PasswordEncoder encoder;
     private final Clock clock;
@@ -55,6 +59,17 @@ public class AutenticacaoMoradorService {
         return acesso != null && acesso.id() != null && repository.findById(acesso.id())
                 .map(morador -> morador.validarSessao(acesso, clock.instant()))
                 .orElse(false);
+    }
+
+    /** Trava a conta do autor até o fim da transação do registro e revalida a sessão sobre o estado atual. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Morador bloquearAutor(AcessoMorador acesso) {
+        Morador morador = acesso == null || acesso.id() == null ? null : repository.buscarComBloqueio(acesso.id()).orElse(null);
+        if (morador != null) { em.refresh(morador); } // a cópia da sessão pode ser anterior a desativação ou troca de residência
+        if (morador == null || acesso.trocaSenhaObrigatoria() || !morador.validarSessao(acesso, clock.instant())) {
+            throw new AccessDeniedException("Entre novamente na sua conta.");
+        }
+        return morador;
     }
 
     @Transactional
