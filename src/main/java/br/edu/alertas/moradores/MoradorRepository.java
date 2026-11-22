@@ -12,4 +12,7 @@ interface MoradorRepository extends JpaRepository<Morador, Long>, JpaSpecificati
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select m from Morador m where m.id = :id")
     Optional<Morador> buscarComBloqueio(Long id);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select m from Morador m where m.cpf = :cpf")
+    Optional<Morador> buscarPorCpfComBloqueio(String cpf);
 }

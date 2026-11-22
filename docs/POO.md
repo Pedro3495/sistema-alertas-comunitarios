@@ -25,6 +25,10 @@ Isso acrescenta evidências de encapsulamento, abstração e substituição de d
 
 `RepresentanteAuthenticationProvider` implementa o contrato `AuthenticationProvider`: o Spring chama a implementação de autenticação da aplicação pelo mesmo contrato usado por outros providers. É um exemplo real de polimorfismo de integração, sem inventar hierarquia de negócio. O filtro herda `OncePerRequestFilter` para participar do ciclo HTTP; isso é herança técnica do framework, não uma hierarquia do domínio.
 
+## Acesso de moradores — RF005
+
+`BloqueioLogin` é um objeto embutido (`@Embeddable`) que encapsula contador e prazo de bloqueio: `Morador`, `Representante` e `Administrador` o **compõem** em vez de repetir a regra das 5 falhas/15 minutos, sem forçar herança entre contas diferentes. `SessaoValidadaFilter<T>` é um filtro genérico: cada chain informa o tipo de principal e a função que revalida a sessão (`AutenticacaoMoradorService::validarSessao` ou a do representante), um exemplo de abstração por parâmetro de tipo e referência de método. `MoradorAuthenticationProvider` implementa o mesmo contrato `AuthenticationProvider` do representante (polimorfismo de integração).
+
 ## Gestão e auditoria
 
 A fachada `GestaoRepresentantesService` aplica autorização e transação do caso de uso; domínio/persistência não dependem de formulários. `AuditoriaService` exige transação existente para que histórico e manutenção sejam confirmados ou revertidos juntos. `RegistroAuditoria` não expõe setters e é mapeado como imutável; a interface oferece somente consulta. Os principals distintos impedem confundir a identidade do administrador com a do representante quando IDs ou logins coincidem.

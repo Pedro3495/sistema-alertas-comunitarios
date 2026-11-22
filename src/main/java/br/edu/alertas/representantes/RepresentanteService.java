@@ -101,7 +101,7 @@ public class RepresentanteService {
         }
     }
 
-    static void validarSenha(String senha) {
+    public static void validarSenha(String senha) {
         if (senha == null || senha.codePointCount(0, senha.length()) < 8) {
             throw new IllegalArgumentException("A senha deve ter no mínimo 8 caracteres.");
         }
