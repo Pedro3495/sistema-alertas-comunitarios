@@ -33,11 +33,26 @@ Coberta pelo RF007: as fontes não restringem a recuperação a quem já trocou 
 ## Limites e pendências
 
 - Envio **simulado** (decisão de Pedro): nenhuma mensagem real; dublê de teste não é integração entregue.
-- Auditoria: não registrada. `AuditoriaService` exige representante/administrador autenticado e o fluxo é anônimo; as fontes do RF007 não pedem trilha. Decisão da dupla se quiser registrar.
-- Limite de pedidos de código por telefone/IP: as fontes não definem; não foi inventado. Com provedor real, avaliar custo e abuso.
+- Limite e auditoria: resolvidos pela decisão de Pedro (seção abaixo). Limite por IP não foi decidido nem implementado.
 - Formato do código: 6 dígitos (detalhe técnico, as fontes não fixam). Conta com login bloqueado (RS001) continua bloqueada até o fim dos 15 min mesmo após redefinir.
 - A falha de envio revela que o telefone tem conta (exigência da regra 6 de informar a falha).
 - RS009 (HTTPS) é de implantação; testes usam HTTP em loopback.
+
+## Decisão de Pedro (22/11/2026) — limite de pedidos e auditoria
+
+Branch `Pedro3495/rf007-limite-auditoria`, base `main`.
+
+| Decisão | Implementação |
+|---|---|
+| Até 3 pedidos de código por morador por hora, janela móvel de 60 min | `RecuperacaoAcessoService.solicitarCodigo` conta os `SOLICITAR_CODIGO_RECUPERACAO` do morador com `ocorrido_em > agora − 1 h` (`AuditoriaService.contarMorador`); a linha do morador já está bloqueada (`buscarPorCelularComBloqueio`), então pedidos simultâneos não furam o limite. Pedidos com falha de envio também contam. |
+| Recusa genérica, sem envio, sem revelar se a conta existe | Acima do limite retorna `SOLICITADO`, a mesma resposta do telefone desconhecido; nada é enviado e o código vigente não é trocado. A tela do código informa o limite para todos. |
+| Auditar pedidos, recusas e redefinições concluídas, sem código nem senha | Reaproveita `registros_auditoria`/`RegistroAuditoria`: novo `AuditoriaService.registrarMorador(acao, moradorId)` grava `SOLICITAR_CODIGO_RECUPERACAO`, `RECUSAR_CODIGO_RECUPERACAO_LIMITE` e `REDEFINIR_SENHA_RECUPERACAO` com responsável `MORADOR #id`. Telefone desconhecido não gera registro (não há responsável). |
+
+Persistência: `V13__auditoria_recuperacao_morador.sql` só amplia o CHECK de `responsavel_tipo` para aceitar `MORADOR`; V1–V12 preservadas; `database/schema.sql` ajustado na mesma restrição. A tela de auditoria mostra esses registros como `MORADOR #id`; o filtro por responsável continua listando apenas administradores e representantes.
+
+Teste: `tresPedidosPorHoraEmJanelaMovelComRecusaIgualAoSucessoEAuditoriaSemSegredo` (relógio controlado: pedidos em 0, 20 e 40 min passam; o 4º em 59 min recebe a mesma resposta de telefone desconhecido e nada é enviado; aos 60 min libera e redefine; registros na ordem esperada e sem código ou senha).
+
+Verificação: `./scripts/verificar.sh` com JDK 21 em PostgreSQL isolado (`alertas-rf006-test`, 55440), base nova exclusiva `alertas_rf007lim_1795379398`: **265 testes, 0 falhas, 0 erros**, `BUILD SUCCESS`. Executado com `SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=3` porque o contêiner compartilhado recusou conexões ("too many clients") em execuções anteriores com o pool padrão.
 
 ## Evidências locais — 22/11/2026
 

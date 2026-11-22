@@ -201,7 +201,7 @@ CREATE TABLE public.registros_auditoria (
     ocorrido_em timestamp with time zone NOT NULL,
     CONSTRAINT registros_auditoria_acao_check CHECK ((length(TRIM(BOTH FROM acao)) > 0)),
     CONSTRAINT registros_auditoria_responsavel_id_check CHECK ((responsavel_id > 0)),
-    CONSTRAINT registros_auditoria_responsavel_tipo_check CHECK ((responsavel_tipo = ANY (ARRAY['ADMINISTRADOR'::text, 'REPRESENTANTE'::text])))
+    CONSTRAINT registros_auditoria_responsavel_tipo_check CHECK ((responsavel_tipo = ANY (ARRAY['ADMINISTRADOR'::text, 'REPRESENTANTE'::text, 'MORADOR'::text])))
 );
 
 
