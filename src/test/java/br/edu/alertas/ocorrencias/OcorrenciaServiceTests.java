@@ -73,7 +73,7 @@ class OcorrenciaServiceTests extends OcorrenciasFixtures {
         assertThat(quantidadeOcorrencias()).isEqualTo(1);
         assertThat(quantidadeFotos()).isEqualTo(4);
         assertThat(acoes()).containsExactly("REGISTRAR_OCORRENCIA #" + salvo.getProtocolo());
-        assertThat(jdbc.queryForObject("SELECT ocorrido_em FROM registros_auditoria WHERE responsavel_tipo = 'REPRESENTANTE' AND responsavel_id = ?",
+        assertThat(jdbc.queryForObject("SELECT ocorrido_em FROM registros_auditoria WHERE responsavel_tipo = 'REPRESENTANTE' AND responsavel_id = ? AND acao LIKE 'REGISTRAR_OCORRENCIA %'",
                 java.sql.Timestamp.class, representante.getId()).toInstant()).isBetween(antes, depois);
     }
 

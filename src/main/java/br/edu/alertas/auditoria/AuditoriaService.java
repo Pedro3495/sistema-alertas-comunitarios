@@ -30,7 +30,12 @@ public class AuditoriaService {
     /** RF007: a recuperação é anônima; o responsável é o morador localizado pelo telefone. Nunca recebe código ou senha. */
     @Transactional(propagation = Propagation.MANDATORY)
     public void registrarMorador(String acao, Long moradorId) {
-        em.persist(new RegistroAuditoria(acao, "MORADOR", moradorId, clock.instant()));
+        registrarConta(acao, "MORADOR", moradorId);
+    }
+    /** RF005/RF013 (decisão de Pedro, 22/11/2026): a primeira troca ocorre com sessão temporária, sem responsável em UsuarioAtual. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void registrarConta(String acao, String tipo, Long id) {
+        em.persist(new RegistroAuditoria(acao, tipo, id, clock.instant()));
     }
     public long contarMorador(String acao, Long moradorId, Instant depoisDe) {
         return em.createQuery("""

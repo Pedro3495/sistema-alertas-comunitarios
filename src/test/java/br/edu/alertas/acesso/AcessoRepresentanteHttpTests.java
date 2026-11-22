@@ -60,6 +60,7 @@ class AcessoRepresentanteHttpTests {
 
     @AfterEach
     void removeSomenteFixturesDesteTeste() {
+        criados.forEach(id -> jdbc.update("DELETE FROM registros_auditoria WHERE responsavel_tipo = 'REPRESENTANTE' AND responsavel_id = ?", id));
         criados.forEach(id -> jdbc.update("DELETE FROM representantes WHERE id = ?", id));
     }
 
@@ -95,6 +96,10 @@ class AcessoRepresentanteHttpTests {
         assertThat(pagina.body()).doesNotContain(TEMPORARIA, DEFINITIVA);
         assertThat(navegador.get("/trocar-senha").statusCode()).isEqualTo(403);
         assertThat(navegador.get("/auditoria").statusCode()).isEqualTo(200);
+        // Decisão de Pedro (22/11/2026): a primeira troca aparece na consulta, sem senha nem hash.
+        String hash = jdbc.queryForObject("SELECT senha_hash FROM representantes WHERE id = ?", String.class, conta.getId());
+        assertThat(navegador.get("/auditoria?acao=DEFINIR_SENHA_DEFINITIVA_REPRESENTANTE+%23" + conta.getId()).body())
+                .contains("DEFINIR_SENHA_DEFINITIVA_REPRESENTANTE #" + conta.getId()).doesNotContain(TEMPORARIA, DEFINITIVA, hash);
 
         assertThat(navegador.get("/sair").statusCode()).isIn(403, 404, 405);
         assertThat(navegador.get("/representante").statusCode()).isEqualTo(200);

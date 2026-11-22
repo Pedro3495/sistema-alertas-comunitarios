@@ -23,9 +23,18 @@ Pendentes pelas fontes, em ordem: RF001 regra 6 (o morador altera no aplicativo 
 
 ## Decisões de interpretação (registradas, sem regra nova)
 
-- A definição da primeira senha (RF005) não foi auditada: é autenticação, não cadastro/manutenção pela entidade, e o RF013 não a cita. Se a dupla entender o contrário, basta `auditoria.registrarMorador` em `AutenticacaoMoradorService.trocarSenha` (cuidado com o ciclo de dependência via `UsuarioAtual`).
+- ~~A definição da primeira senha (RF005) não foi auditada.~~ Revisto: **Decisão de Pedro (22/11/2026):** a troca da senha temporária pela definitiva (primeira troca) de morador e de representante é registrada na auditoria existente (`registros_auditoria`), sem senha nem hash. Ver "Primeira troca de senha" abaixo.
 - Imutabilidade garantida pela aplicação (sem rota/serviço, `@Immutable`), não por trigger no banco: os testes limpam fixtures de auditoria por `DELETE`, e o requisito proíbe a alteração pelos usuários do sistema.
 - Valores anteriores/novos só nas ocorrências, como diz a regra 4; a ação de preferências guarda só o ID.
+
+## Primeira troca de senha (decisão de Pedro, 22/11/2026)
+
+- `AutenticacaoMoradorService.trocarSenha` grava `DEFINIR_SENHA_DEFINITIVA_MORADOR #<id>` (responsável `MORADOR #id`) e `AutenticacaoRepresentanteService.trocarSenha` grava `DEFINIR_SENHA_DEFINITIVA_REPRESENTANTE #<id>` (responsável `REPRESENTANTE #id`), na mesma transação da troca. Mesmo padrão `VERBO_OBJETO_PERFIL #id` das demais ações; a ação só contém o ID.
+- A sessão ainda é temporária, então `UsuarioAtual.exigirResponsavel` não serve: `AuditoriaService.registrarConta(acao, tipo, id)` recebe o responsável explicitamente (`registrarMorador` passou a delegar a ele). `AuditoriaService` é injetado com `@Lazy` nos serviços de autenticação para quebrar o ciclo via `UsuarioAtual`.
+- Vale para toda troca obrigatória da temporária pela definitiva (inclusive após reenvio/redefinição de temporária). A redefinição por código (RF007) continua com sua ação `REDEFINIR_SENHA_RECUPERACAO`.
+- Sem migração: `acao` não tem lista fechada no CHECK (V6). `database/schema.sql` não muda.
+- Testes: `AutenticacaoMoradorServiceTests` e `AutenticacaoRepresentanteServiceTests` conferem uma única linha com a ação e o responsável e a ausência da temporária, da definitiva e do hash; `MoradoresHttpTests` (fluxo HTTP do morador) confere a linha sem segredo; `AcessoRepresentanteHttpTests` confere a ação na consulta `/auditoria` do próprio representante, sem senha/hash na página. Helpers `acoes()` de outros testes ignoram essa linha do preparo do ator, e as limpezas removem as novas linhas.
+- Evidência: `./scripts/verificar.sh` com JDK 21 em PostgreSQL isolado (base nova `alertas_primeira_senha_1795387985`, container `alertas-rf006-test`, porta 55440, `SPRING_DATASOURCE_HIKARI_MAXIMUMPOOLSIZE=4`): 298 testes, 0 falhas, 0 erros, `BUILD SUCCESS`, `git diff --check` limpo; 0 linhas restantes em `registros_auditoria`.
 
 ## Limites
 

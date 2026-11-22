@@ -1,5 +1,6 @@
 package br.edu.alertas.moradores;
 
+import br.edu.alertas.auditoria.AuditoriaService;
 import br.edu.alertas.representantes.RepresentanteService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -7,6 +8,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,11 +24,15 @@ public class AutenticacaoMoradorService {
     private final PasswordEncoder encoder;
     private final Clock clock;
     private final String hashContaInexistente;
+    private final AuditoriaService auditoria;
 
-    public AutenticacaoMoradorService(MoradorRepository repository, PasswordEncoder encoder, Clock clock) {
+    // @Lazy: AuditoriaService depende de UsuarioAtual, que depende deste serviço.
+    public AutenticacaoMoradorService(MoradorRepository repository, PasswordEncoder encoder, Clock clock,
+            @Lazy AuditoriaService auditoria) {
         this.repository = repository;
         this.encoder = encoder;
         this.clock = clock;
+        this.auditoria = auditoria;
         hashContaInexistente = encoder.encode(UUID.randomUUID().toString());
     }
 
@@ -81,5 +87,6 @@ public class AutenticacaoMoradorService {
         }
         RepresentanteService.validarSenha(novaSenha);
         morador.definirSenhaDefinitiva(encoder.encode(novaSenha));
+        auditoria.registrarMorador("DEFINIR_SENHA_DEFINITIVA_MORADOR #" + morador.getId(), morador.getId());
     }
 }
