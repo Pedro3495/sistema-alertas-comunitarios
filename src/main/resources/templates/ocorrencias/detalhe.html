@@ -76,6 +76,47 @@
       </li>
     </ul>
   </section>
+  <!--/* RF011: só na tela do representante; fotos, autor e protocolo não são editáveis; justificativa interna (RF008 regra 6). */-->
+  <section th:unless="${morador}" aria-labelledby="titulo-alteracao">
+    <h2 id="titulo-alteracao">Alterar ocorrência</h2>
+    <p class="mensagem" role="status" th:if="${alterada}">Alteração salva.</p>
+    <th:block th:if="${ocorrencia.situacaoAtual.name() != 'ENCERRADA'}">
+      <p class="mensagem erro" role="alert" th:if="${erroAlteracao}" th:text="${erroAlteracao.message}"></p>
+      <form method="post" th:action="@{/ocorrencias/{protocolo}/alteracao(protocolo=${ocorrencia.protocolo})}">
+        <label for="alteracao-tipo">Tipo *</label>
+        <select id="alteracao-tipo" name="tipo" required>
+          <option th:each="t : ${tipos}" th:value="${t.name()}" th:text="${t.rotulo}" th:selected="${t.name() == alteracao.tipo}"></option>
+        </select>
+        <label for="alteracao-outros">Especificação de Outros (obrigatória para Outros)</label>
+        <input id="alteracao-outros" name="especificacaoOutros" th:value="${alteracao.especificacaoOutros}">
+        <label for="alteracao-descricao">Descrição do ocorrido *</label>
+        <textarea id="alteracao-descricao" name="descricao" required th:text="${alteracao.descricao}"></textarea>
+        <label for="alteracao-localizacao">Localização do fato *</label>
+        <textarea id="alteracao-localizacao" name="localizacao" required th:text="${alteracao.localizacao}"></textarea>
+        <label for="alteracao-area">Área de risco *</label>
+        <select id="alteracao-area" name="areaId" required>
+          <option th:each="a : ${areas}" th:value="${a.id}" th:text="${a.nome}" th:selected="${a.id.toString() == alteracao.areaId}"></option>
+        </select>
+        <label for="alteracao-justificativa">Justificativa interna *</label>
+        <textarea id="alteracao-justificativa" name="justificativa" required th:text="${alteracao.justificativa}"
+                  th:attr="aria-invalid=${erroAlteracao != null and erroAlteracao.campo == 'justificativa'}"></textarea>
+        <label for="alteracao-orientacoes">Orientações atualizadas (opcional)</label>
+        <textarea id="alteracao-orientacoes" name="orientacoes" th:text="${alteracao.orientacoes}"></textarea>
+        <p class="orientacao">As fotos enviadas não podem ser removidas nem substituídas.</p>
+        <p class="orientacao">Se a ocorrência já tiver alerta, quem o recebeu ganha um aviso de alteração com o resumo da mudança e as orientações, sem a justificativa.</p>
+        <button type="submit">Salvar alteração</button>
+      </form>
+    </th:block>
+    <h3>Histórico de alterações</h3>
+    <p th:if="${#lists.isEmpty(alteracoes)}">Nenhuma alteração registrada.</p>
+    <ul th:unless="${#lists.isEmpty(alteracoes)}" class="verificacoes">
+      <li th:each="a : ${alteracoes}">
+        <span th:text="${a.representanteNome}"></span> · <time th:datetime="${a.alteradaEm}" th:text="${a.alteradaEm}"></time>
+        <p class="descricao" th:text="${a.resumo}"></p>
+        <p class="descricao" th:text="${'Justificativa: ' + a.justificativa}"></p>
+      </li>
+    </ul>
+  </section>
   <!--/* RF010: emissão manual, só de ocorrência Confirmada; alertas e avisos ficam preservados, sem edição nem exclusão. */-->
   <section th:unless="${morador}" aria-labelledby="titulo-alertas">
     <h2 id="titulo-alertas">Alertas</h2>

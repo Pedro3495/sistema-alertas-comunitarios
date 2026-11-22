@@ -60,3 +60,7 @@ A fachada `GestaoRepresentantesService` aplica autorização e transação do ca
 ## Alertas — RF010
 
 `EnvioAlertas` é uma porta separada de `EnvioCredenciais` porque as regras diferem (RF010 regra 5: só alertas têm "ambos" e alternativa por falha); `EnvioAlertasSimulado` é a única implementação, sem rede. `Comunicado` encapsula o alerta e o aviso de alteração: as fábricas `alerta` (exige ocorrência Confirmada e os três textos) e `alteracao` são os únicos construtores, não há setters, e `distribuir` só alcança destinatários pendentes. `DestinatarioComunicado.tentar` decide os canais pela preferência do morador, com alternativa automática, e guarda se ao menos um canal aceitou.
+
+## Alteração de ocorrências — RF011
+
+`Ocorrencia.alterar` é o único caminho para corrigir tipo, especificação de Outros, descrição, localização e área: reaproveita as validações do registro (`validar`, compartilhado com o construtor), recusa ocorrência encerrada, justificativa vazia e alteração sem mudança, e devolve a `AlteracaoOcorrencia` imutável com justificativa interna e o resumo campo a campo. Fotos, autor e protocolo não têm caminho de mudança. `OcorrenciaService.alterar` autoriza, bloqueia a linha, persiste, audita e reaproveita `AlertaService.avisarAlteracao` do RF010.

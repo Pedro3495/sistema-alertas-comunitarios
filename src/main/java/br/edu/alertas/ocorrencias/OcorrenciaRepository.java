@@ -17,6 +17,9 @@ interface OcorrenciaRepository extends JpaRepository<Ocorrencia, Long> {
 
     @Query("select v from VerificacaoOcorrencia v where v.ocorrencia.protocolo = :protocolo order by v.verificadaEm desc, v.id desc")
     List<VerificacaoOcorrencia> verificacoes(UUID protocolo);
+
+    @Query("select a from AlteracaoOcorrencia a where a.ocorrencia.protocolo = :protocolo order by a.alteradaEm desc, a.id desc")
+    List<AlteracaoOcorrencia> alteracoes(UUID protocolo);
     Optional<Ocorrencia> findByRepresentante_IdAndEnvioId(Long representanteId, UUID envioId);
     Optional<Ocorrencia> findByMorador_IdAndEnvioId(Long moradorId, UUID envioId);
 

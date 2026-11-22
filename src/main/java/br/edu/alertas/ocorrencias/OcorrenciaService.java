@@ -78,6 +78,34 @@ public class OcorrenciaService {
         return ocorrencia;
     }
 
+    /**
+     * RF011: qualquer representante corrige ocorrência de qualquer área antes do encerramento (regras 1 e 5).
+     * Regra 6 / RF013 regra 4: auditoria com valores anteriores e novos, sem a justificativa interna.
+     * Regras 2 a 4: aviso com o resumo só se já houver alerta, para a união dos destinatários anteriores ativos.
+     */
+    @Transactional
+    public Ocorrencia alterar(UUID protocolo, TipoOcorrencia tipo, String especificacaoOutros, String descricao,
+            String localizacao, Long areaId, String justificativa, String orientacoes) {
+        var ator = usuarios.exigirRepresentante();
+        var representante = representantes.buscarPorIdComBloqueio(ator.id())
+                .orElseThrow(() -> new AccessDeniedException("Entre novamente na sua conta."));
+        em.refresh(representante); // mesma proteção do registrar contra desativação concorrente
+        usuarios.exigirRepresentante();
+        var ocorrencia = repository.buscarComBloqueio(protocolo).orElseThrow(() -> new EntityNotFoundException("Ocorrência não encontrada."));
+        var area = areaId == null ? null : areas.findById(areaId)
+                .orElseThrow(() -> new ErroOcorrencia("areaId", "A área selecionada não está disponível. Selecione outra área."));
+        var alteracao = ocorrencia.alterar(tipo, especificacaoOutros, descricao, localizacao, area, justificativa, representante, clock.instant());
+        em.persist(alteracao);
+        auditoria.registrar("ALTERAR_OCORRENCIA #" + protocolo + ": " + alteracao.getResumo());
+        alertas.avisarAlteracao(ocorrencia, alteracao.getResumo(), orientacoes, representante);
+        return ocorrencia;
+    }
+
+    public List<AlteracaoOcorrencia> alteracoes(UUID protocolo) {
+        usuarios.exigirRepresentante();
+        return repository.alteracoes(protocolo);
+    }
+
     /** RF008 regra 6: histórico com justificativas, só para representantes. */
     public List<VerificacaoOcorrencia> verificacoes(UUID protocolo) {
         usuarios.exigirRepresentante();
