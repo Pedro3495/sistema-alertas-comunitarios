@@ -8,7 +8,7 @@
   <script defer th:src="@{/js/ocorrencias.js}"></script>
 </head>
 <body class="gestao">
-<header class="cabecalho">
+<header class="cabecalho" th:unless="${morador}">
   <a th:href="@{/representante}">Alertas comunitários</a>
   <nav aria-label="Navegação do representante">
     <a th:href="@{/areas}">Áreas de risco</a>
@@ -16,9 +16,16 @@
     <form th:action="@{/sair}" method="post"><button class="secundario" type="submit">Sair</button></form>
   </nav>
 </header>
+<header class="cabecalho" th:if="${morador}">
+  <a th:href="@{/morador}">Alertas comunitários</a>
+  <nav aria-label="Navegação do morador">
+    <form th:action="@{/morador/sair}" method="post"><button class="secundario" type="submit">Sair</button></form>
+  </nav>
+</header>
 <main>
   <h1>Registrar ocorrência</h1>
-  <p class="introducao">Descreva o que aconteceu e indique a área de risco. Inclua fotos do local.</p>
+  <p class="introducao" th:unless="${morador}">Descreva o que aconteceu e indique a área de risco. Inclua fotos do local.</p>
+  <p class="introducao" th:if="${morador}">Descreva o que aconteceu e onde. A área de risco é a da sua residência cadastrada. Inclua fotos do local.</p>
   <noscript><p class="mensagem erro">Ative o JavaScript do navegador para salvar o rascunho e enviar as fotos.</p></noscript>
   <div class="mensagem" th:if="${#lists.isEmpty(areas)}">
     <p>Cadastre uma área de risco antes de registrar a ocorrência.</p>
@@ -26,7 +33,7 @@
   </div>
   <p class="mensagem" id="rascunho-status" role="status" aria-live="polite">Preparando o rascunho neste dispositivo…</p>
   <p class="mensagem erro" id="envio-erro" role="alert" hidden tabindex="-1"></p>
-  <form id="ocorrencia-formulario" class="formulario" th:action="@{/ocorrencias}" method="post"
+  <form id="ocorrencia-formulario" class="formulario" th:action="${morador} ? @{/morador/ocorrencias} : @{/ocorrencias}" method="post"
         enctype="multipart/form-data" novalidate th:attr="data-rascunho-chave=${rascunhoChave}">
     <input type="hidden" name="envioId" id="envioId">
     <fieldset id="dados-ocorrencia" disabled>
@@ -62,8 +69,8 @@
       <div class="campo">
         <label for="areaId">Área de risco</label>
         <select id="areaId" name="areaId" required aria-describedby="erro-areaId">
-          <option value="">Selecione uma área cadastrada</option>
-          <option th:each="area : ${areas}" th:value="${area.id}" th:text="${area.nome}"></option>
+          <option value="" th:unless="${morador}">Selecione uma área cadastrada</option>
+          <option th:each="area : ${areas}" th:value="${area.id}" th:text="${area.nome}" th:selected="${morador}"></option>
         </select>
         <p id="erro-areaId" class="erro-campo" role="alert"></p>
       </div>
@@ -80,7 +87,7 @@
     </fieldset>
   </form>
   <p class="orientacao">O rascunho fica neste navegador, separado por conta. Após recuperar um rascunho, revise e envie manualmente. A ocorrência enviada e suas fotos serão preservadas.</p>
-  <p class="voltar"><a th:href="@{/representante}">Voltar para início</a></p>
+  <p class="voltar"><a th:href="${morador} ? @{/morador} : @{/representante}">Voltar para início</a></p>
 </main>
 </body>
 </html>

@@ -7,10 +7,10 @@
   <link rel="stylesheet" th:href="@{/css/ocorrencias.css}">
   <script defer th:src="@{/js/ocorrencias.js}"></script>
 </head>
-<body class="gestao">
-<header class="cabecalho"><a th:href="@{/representante}">Alertas comunitários</a>
-  <nav aria-label="Navegação do representante"><a th:href="@{/ocorrencias/novo}">Registrar ocorrência</a>
-    <form th:action="@{/sair}" method="post"><button class="secundario" type="submit">Sair</button></form>
+<body class="gestao" th:with="base=${morador} ? '/morador' : ''">
+<header class="cabecalho"><a th:href="${morador} ? @{/morador} : @{/representante}">Alertas comunitários</a>
+  <nav th:aria-label="${morador} ? 'Navegação do morador' : 'Navegação do representante'"><a th:href="@{__${base}__/ocorrencias/novo}">Registrar ocorrência</a>
+    <form th:action="@{__${base}__/sair}" method="post"><button class="secundario" type="submit">Sair</button></form>
   </nav>
 </header>
 <main id="ocorrencia-detalhe" th:attr="data-rascunho-chave=${rascunhoChave},data-envio-id=${rascunhoChave != null ? ocorrencia.envioId : null}">
@@ -26,15 +26,15 @@
     <div><dt>Descrição do ocorrido</dt><dd class="descricao" th:text="${ocorrencia.descricao}"></dd></div>
     <div><dt>Localização do fato</dt><dd class="descricao" th:text="${ocorrencia.localizacao}"></dd></div>
     <div><dt>Área de risco</dt><dd th:text="${ocorrencia.areaNome}"></dd></div>
-    <div><dt>Representante responsável</dt><dd th:text="${ocorrencia.representanteNome}"></dd></div>
+    <div th:if="${ocorrencia.representanteNome != null}"><dt>Representante responsável</dt><dd th:text="${ocorrencia.representanteNome}"></dd></div>
   </dl>
   <section aria-labelledby="titulo-evidencias">
     <h2 id="titulo-evidencias">Fotos do ocorrido</h2>
     <ul class="evidencias">
       <li th:each="foto : ${ocorrencia.fotos}">
-        <a th:href="@{/ocorrencias/{protocolo}/fotos/{ordem}(protocolo=${ocorrencia.protocolo},ordem=${foto.ordem})}">
+        <a th:href="@{__${base}__/ocorrencias/{protocolo}/fotos/{ordem}(protocolo=${ocorrencia.protocolo},ordem=${foto.ordem})}">
           <img th:if="${foto.tipoMidia == 'image/jpeg' or foto.tipoMidia == 'image/png'}"
-               th:src="@{/ocorrencias/{protocolo}/fotos/{ordem}(protocolo=${ocorrencia.protocolo},ordem=${foto.ordem})}"
+               th:src="@{__${base}__/ocorrencias/{protocolo}/fotos/{ordem}(protocolo=${ocorrencia.protocolo},ordem=${foto.ordem})}"
                th:alt="${'Foto do ocorrido ' + foto.ordem}" loading="lazy">
           <span th:text="${'Abrir foto ' + foto.ordem}"></span>
         </a>
@@ -43,8 +43,8 @@
     </ul>
   </section>
   <p class="orientacao">O registro e suas evidências são preservados. Não é possível excluir a ocorrência nem remover ou substituir as fotos enviadas.</p>
-  <p class="voltar"><a th:href="@{/ocorrencias/novo}">Registrar outra ocorrência</a></p>
-  <p class="voltar"><a th:href="@{/representante}">Voltar para início</a></p>
+  <p class="voltar"><a th:href="${morador} ? @{/morador/ocorrencias/novo} : @{/ocorrencias/novo}">Registrar outra ocorrência</a></p>
+  <p class="voltar"><a th:href="${morador} ? @{/morador} : @{/representante}">Voltar para início</a></p>
 </main>
 </body>
 </html>

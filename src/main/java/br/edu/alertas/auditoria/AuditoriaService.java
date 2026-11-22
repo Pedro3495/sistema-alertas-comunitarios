@@ -24,7 +24,7 @@ public class AuditoriaService {
     }
     @Transactional(propagation = Propagation.MANDATORY)
     public void registrar(String acao) {
-        var ator = usuarios.exigirConsultaAuditoria();
+        var ator = usuarios.exigirResponsavel();
         em.persist(new RegistroAuditoria(acao, ator.tipo(), ator.id(), clock.instant()));
     }
     /** RF007: a recuperação é anônima; o responsável é o morador localizado pelo telefone. Nunca recebe código ou senha. */
@@ -72,6 +72,8 @@ public class AuditoriaService {
                 SELECT 'ADMINISTRADOR:' || id AS chave, 'Administrador: ' || login AS nome FROM administradores
                 UNION ALL
                 SELECT 'REPRESENTANTE:' || id, 'Representante: ' || login FROM representantes
+                UNION ALL
+                SELECT 'MORADOR:' || id, 'Morador #' || id FROM moradores
                 ORDER BY nome
                 """, (rs, row) -> new OpcaoResponsavel(rs.getString("chave"), rs.getString("nome")));
     }
