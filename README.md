@@ -2,7 +2,7 @@
 
 Projeto acadêmico. Em 21/11/2026, Pedro assumiu a continuidade sem o colega, com apoio de IA e subagentes. O fluxo atual é [desenvolvimento orientado por especificação](docs/SDD.md). Base em Java 21, Spring Boot 4.1.2, Spring MVC/Thymeleaf, Spring Data JPA, PostgreSQL 17 e Flyway; Maven Wrapper versionado.
 
-**Estado da branch de desenvolvimento (22/11/2026):** acesso de representantes, gestão administrativa com auditoria inicial e gestão web de áreas/residências implementados, com 136 testes. Os PRs aguardam revisão e integração; os 13 RF não estão concluídos. Configure o primeiro administrador pelo [comando local](docs/administracao/README.md) e consulte [os limites da entrega atual](docs/residencias/README.md).
+**Estado da branch de desenvolvimento (22/11/2026):** acesso de representantes, gestão administrativa com auditoria inicial, gestão web de áreas/residências e base interna persistente de moradores implementados, com 177 testes. O cadastro público e o acesso de moradores ainda dependem do envio real de credenciais; ver [contrato da base](specs/entregas/RF001-base.md). Os PRs aguardam revisão e integração; os 13 RF não estão concluídos. Configure o primeiro administrador pelo [comando local](docs/administracao/README.md) e consulte [os limites da entrega atual](docs/residencias/README.md).
 
 ## Começar no seu computador
 
