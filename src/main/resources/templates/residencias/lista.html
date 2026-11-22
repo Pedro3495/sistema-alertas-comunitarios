@@ -1,0 +1,20 @@
+<!doctype html><html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Residências · Alertas comunitários</title><link rel="stylesheet" th:href="@{/css/residencias.css}"></head>
+<body class="gestao"><header class="cabecalho"><a th:href="@{/representante}">Alertas comunitários</a>
+<nav aria-label="Navegação do representante"><a th:href="@{/areas}">Áreas de risco</a><a th:href="@{/residencias}">Residências</a><a th:href="@{/auditoria}">Auditoria</a>
+<form th:action="@{/sair}" method="post"><button class="secundario" type="submit">Sair</button></form></nav></header><main>
+<div class="titulo-acoes"><h1>Residências</h1><a class="botao" th:href="@{/residencias/novo}">Cadastrar residência</a></div>
+<p>Consulte os endereços e a área de risco de cada residência.</p>
+<p class="mensagem" role="status" th:if="${param.sucesso != null}">Operação concluída.</p>
+<p class="mensagem erro" role="alert" th:if="${erro}" th:text="${erro}"></p>
+<form class="filtros" th:action="@{/residencias}" method="get">
+<div><label for="rua">Rua ou logradouro</label><input id="rua" name="rua" th:value="${rua}"></div>
+<div><label for="numero">Número</label><input id="numero" name="numero" th:value="${numero}"></div>
+<div><label for="bairro">Bairro</label><input id="bairro" name="bairro" th:value="${bairro}"></div>
+<div><label for="municipio">Município</label><input id="municipio" name="municipio" th:value="${municipio}"></div>
+<div><label for="areaId">Área de risco</label><select id="areaId" name="areaId"><option value="">Todas as áreas</option><option th:if="${areaFiltroIndisponivel}" th:value="${areaId}" selected>Área indisponível</option><option th:each="area : ${areas}" th:value="${area.id}" th:text="${area.nome}" th:selected="${#strings.toString(area.id) == areaId}"></option></select></div>
+<button type="submit">Pesquisar</button><a th:href="@{/residencias}">Limpar filtros</a></form>
+<p th:if="${#lists.isEmpty(residencias)}">Nenhuma residência encontrada.</p>
+<ul class="resultados"><li th:each="residencia : ${residencias}"><div><h2><span th:text="${residencia.ruaLogradouro}"></span>, <span th:text="${residencia.numero}"></span></h2><p><span th:text="${residencia.bairro}"></span> · <span th:text="${residencia.municipio}"></span></p><p>Área de risco: <span th:text="${residencia.areaNome}"></span></p></div><a class="botao secundario" th:href="@{/residencias/{id}/editar(id=${residencia.id})}">Editar residência</a></li></ul>
+</main></body></html>
