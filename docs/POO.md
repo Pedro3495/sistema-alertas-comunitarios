@@ -52,3 +52,7 @@ A fachada `GestaoRepresentantesService` aplica autorização e transação do ca
 ## Recuperação de acesso do morador — RF007
 
 `CodigoRecuperacao` é outro objeto embutido em `Morador`, ao lado de `BloqueioLogin`: encapsula hash, prazo de 10 minutos e contador de erros, e só expõe `emitir`, `conferir` e `invalidar`, de modo que nenhum chamador consegue deixar um código vencido ou esgotado utilizável. `Morador.redefinirSenhaComCodigo` combina essa regra com a de senha definitiva já existente. O mesmo contrato `EnvioCredenciais` ganhou `enviarCodigoRecuperacao`; o caso de uso continua sem conhecer o provedor (simulado).
+
+## Verificação de ocorrências — RF009
+
+`Ocorrencia.verificar` é o único caminho para mudar a situação para Confirmada ou Não confirmada: recusa ocorrência encerrada, outra situação, a mesma decisão repetida e justificativa vazia, e devolve a `VerificacaoOcorrencia` imutável (`@Immutable`) que guarda justificativa, representante e instante. O campo `situacao` continua privado e sem setter. `OcorrenciaService.verificar` só autoriza, bloqueia a linha, persiste e audita.

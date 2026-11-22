@@ -51,6 +51,7 @@ abstract class OcorrenciasFixtures {
         SecurityContextHolder.clearContext();
         for (long residencia : residencias) {
             String autores = "SELECT id FROM moradores WHERE residencia_id = " + residencia;
+            jdbc.update("DELETE FROM verificacoes_ocorrencia WHERE ocorrencia_id IN (SELECT id FROM ocorrencias WHERE morador_id IN (" + autores + "))");
             jdbc.update("DELETE FROM fotos_ocorrencia WHERE ocorrencia_id IN (SELECT id FROM ocorrencias WHERE morador_id IN (" + autores + "))");
             jdbc.update("DELETE FROM ocorrencias WHERE morador_id IN (" + autores + ")");
             jdbc.update("DELETE FROM registros_auditoria WHERE responsavel_tipo = 'MORADOR' AND responsavel_id IN (" + autores + ")");
@@ -58,6 +59,7 @@ abstract class OcorrenciasFixtures {
         for (long residencia : residencias) jdbc.update("DELETE FROM moradores WHERE residencia_id = ?", residencia);
         for (long residencia : residencias) jdbc.update("DELETE FROM residencias WHERE id = ?", residencia);
         for (long id : contas) {
+            jdbc.update("DELETE FROM verificacoes_ocorrencia WHERE representante_id = ? OR ocorrencia_id IN (SELECT id FROM ocorrencias WHERE representante_id = ?)", id, id);
             jdbc.update("DELETE FROM fotos_ocorrencia WHERE ocorrencia_id IN (SELECT id FROM ocorrencias WHERE representante_id = ?)", id);
             jdbc.update("DELETE FROM ocorrencias WHERE representante_id = ?", id);
             jdbc.update("DELETE FROM registros_auditoria WHERE responsavel_tipo = 'REPRESENTANTE' AND responsavel_id = ?", id);

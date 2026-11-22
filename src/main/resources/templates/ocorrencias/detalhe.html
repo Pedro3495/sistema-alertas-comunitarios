@@ -44,6 +44,35 @@
       </li>
     </ul>
   </section>
+  <!--/* RF009: só na tela do representante; a justificativa é interna (RF008 regra 6). */-->
+  <section th:unless="${morador}" aria-labelledby="titulo-verificacao">
+    <h2 id="titulo-verificacao">Verificar ocorrência</h2>
+    <p class="mensagem" role="status" th:if="${verificada}">Verificação salva.</p>
+    <th:block th:if="${ocorrencia.situacaoAtual.name() != 'ENCERRADA'}">
+      <p class="mensagem erro" role="alert" th:if="${erroVerificacao}" th:text="${erroVerificacao.message}"></p>
+      <form method="post" th:action="@{/ocorrencias/{protocolo}/verificacao(protocolo=${ocorrencia.protocolo})}">
+        <fieldset>
+          <legend>Resultado da verificação *</legend>
+          <label><input type="radio" name="situacao" value="CONFIRMADA" required th:checked="${decisao == 'CONFIRMADA'}"> Confirmada</label>
+          <label><input type="radio" name="situacao" value="NAO_CONFIRMADA" th:checked="${decisao == 'NAO_CONFIRMADA'}"> Não confirmada</label>
+        </fieldset>
+        <label for="justificativa">Justificativa interna *</label>
+        <textarea id="justificativa" name="justificativa" required th:text="${justificativa}"
+                  th:attr="aria-invalid=${erroVerificacao != null and erroVerificacao.campo == 'justificativa'}"></textarea>
+        <p class="orientacao">Confirmar não envia alerta. A emissão exige outra ação explícita.</p>
+        <button type="submit">Salvar verificação</button>
+      </form>
+    </th:block>
+    <h3>Histórico de verificações</h3>
+    <p th:if="${#lists.isEmpty(verificacoes)}">Nenhuma verificação registrada.</p>
+    <ul th:unless="${#lists.isEmpty(verificacoes)}" class="verificacoes">
+      <li th:each="v : ${verificacoes}">
+        <strong th:text="${v.situacao}"></strong> · <span th:text="${v.representanteNome}"></span> ·
+        <time th:datetime="${v.verificadaEm}" th:text="${v.verificadaEm}"></time>
+        <p class="descricao" th:text="${v.justificativa}"></p>
+      </li>
+    </ul>
+  </section>
   <p class="orientacao">O registro e suas evidências são preservados. Não é possível excluir a ocorrência nem remover ou substituir as fotos enviadas.</p>
   <p class="voltar"><a th:href="@{__${base}__/ocorrencias}">Ver ocorrências</a></p>
   <p class="voltar"><a th:href="${morador} ? @{/morador/ocorrencias/novo} : @{/ocorrencias/novo}">Registrar outra ocorrência</a></p>

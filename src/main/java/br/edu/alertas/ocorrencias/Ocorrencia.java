@@ -55,6 +55,18 @@ public class Ocorrencia {
         for (int i = 0; i < dados.fotos().size(); i++) { fotos.add(new FotoOcorrencia(this, i + 1, dados.fotos().get(i))); }
     }
 
+    /** RF009 regras 2 e 4: Confirmada ou Não confirmada, com justificativa; revisão só entre as duas e antes do encerramento. */
+    VerificacaoOcorrencia verificar(SituacaoOcorrencia decisao, String justificativa, Representante responsavel, Instant agora) {
+        if (situacao == SituacaoOcorrencia.ENCERRADA) { throw new ErroOcorrencia("situacao", "Ocorrência encerrada fica disponível apenas para consulta."); }
+        if (decisao != SituacaoOcorrencia.CONFIRMADA && decisao != SituacaoOcorrencia.NAO_CONFIRMADA) {
+            throw new ErroOcorrencia("situacao", "Selecione Confirmada ou Não confirmada.");
+        }
+        if (decisao == situacao) { throw new ErroOcorrencia("situacao", "A ocorrência já está " + decisao.getRotulo() + "."); }
+        exigir(justificativa, "justificativa", "Informe a justificativa da verificação.");
+        situacao = decisao;
+        return new VerificacaoOcorrencia(this, decisao, justificativa.strip(), responsavel, agora);
+    }
+
     private static void exigir(String valor, String campo, String mensagem) {
         if (valor == null || valor.isBlank()) { throw new ErroOcorrencia(campo, mensagem); }
     }
@@ -67,6 +79,7 @@ public class Ocorrencia {
     public String getDescricao() { return descricao; }
     public String getLocalizacao() { return localizacao; }
     public String getSituacao() { return situacao.getRotulo(); }
+    public SituacaoOcorrencia getSituacaoAtual() { return situacao; }
     public Long getAreaId() { return area.getId(); }
     public String getAreaNome() { return area.getNome(); }
     public Long getRepresentanteId() { return representante == null ? null : representante.getId(); }

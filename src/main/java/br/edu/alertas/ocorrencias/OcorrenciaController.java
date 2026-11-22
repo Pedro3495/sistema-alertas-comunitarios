@@ -3,6 +3,7 @@ package br.edu.alertas.ocorrencias;
 import br.edu.alertas.areas.AreaRiscoRepository;
 import br.edu.alertas.auditoria.UsuarioAtual;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.server.ResponseStatusException;
 
 // Representante: /ocorrencias (qualquer área). Morador: /morador/ocorrencias (área da residência, RF006 regra 4).
@@ -138,7 +140,31 @@ public class OcorrenciaController {
         if (ator.id().equals(ocorrencia.getRepresentanteId())) {
             model.addAttribute("rascunhoChave", "REPRESENTANTE:" + ator.id());
         }
+        model.addAttribute("verificacoes", service.verificacoes(protocolo));
         return "ocorrencias/detalhe";
+    }
+
+    // RF009: formulário HTML com CSRF; erro volta à tela com 400 e o texto digitado.
+    @PostMapping("/ocorrencias/{protocolo}/verificacao")
+    String verificar(@PathVariable UUID protocolo, @RequestParam(defaultValue = "") String situacao,
+            @RequestParam(defaultValue = "") String justificativa, Model model, HttpServletResponse response,
+            RedirectAttributes redirect) {
+        usuarios.exigirRepresentante();
+        SituacaoOcorrencia decisao = null;
+        try { decisao = SituacaoOcorrencia.valueOf(situacao); } catch (IllegalArgumentException ignorada) { } // o domínio rejeita nulo
+        try {
+            service.verificar(protocolo, decisao, justificativa);
+        } catch (EntityNotFoundException exception) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        } catch (ErroOcorrencia exception) {
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            model.addAttribute("erroVerificacao", exception);
+            model.addAttribute("decisao", situacao);
+            model.addAttribute("justificativa", justificativa);
+            return detalhe(protocolo, model);
+        }
+        redirect.addFlashAttribute("verificada", true);
+        return "redirect:/ocorrencias/" + protocolo;
     }
 
     @GetMapping("/morador/ocorrencias/{protocolo}")
