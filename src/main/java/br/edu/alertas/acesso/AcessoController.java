@@ -57,7 +57,7 @@ public class AcessoController {
         return "acesso/representante";
     }
 
-    private void encerrarSessao(HttpServletRequest request) {
+    static void encerrarSessao(HttpServletRequest request) {
         SecurityContextHolder.clearContext();
         var session = request.getSession(false);
         if (session != null) {

@@ -1,10 +1,11 @@
 package br.edu.alertas.administracao;
 
+import br.edu.alertas.acesso.BloqueioLogin;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,11 +22,8 @@ public class Administrador {
     @Column(name = "senha_hash", nullable = false, columnDefinition = "text")
     private String senhaHash;
 
-    @Column(name = "falhas_login", nullable = false)
-    private int falhasLogin;
-
-    @Column(name = "bloqueado_ate")
-    private Instant bloqueadoAte;
+    @Embedded
+    private BloqueioLogin bloqueio = new BloqueioLogin();
 
     @Column(name = "versao_credencial", nullable = false)
     private long versaoCredencial;
@@ -48,22 +46,15 @@ public class Administrador {
     }
 
     boolean loginBloqueado(Instant agora) {
-        if (bloqueadoAte != null && !agora.isBefore(bloqueadoAte)) {
-            registrarLoginCorreto();
-        }
-        return bloqueadoAte != null;
+        return bloqueio.bloqueado(agora);
     }
 
     void registrarFalhaLogin(Instant agora) {
-        falhasLogin++;
-        if (falhasLogin == 5) {
-            bloqueadoAte = agora.plus(Duration.ofMinutes(15));
-        }
+        bloqueio.registrarFalha(agora);
     }
 
     void registrarLoginCorreto() {
-        falhasLogin = 0;
-        bloqueadoAte = null;
+        bloqueio.zerar();
     }
 
     void redefinirSenha(String senhaHash) {

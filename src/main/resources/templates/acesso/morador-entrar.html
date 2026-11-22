@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Entrar como morador · Alertas comunitários</title>
+  <link rel="stylesheet" th:href="@{/css/acesso.css}">
+</head>
+<body>
+<header><a th:href="@{/}">Alertas comunitários</a></header>
+<main id="conteudo">
+  <h1>Entrar como morador</h1>
+  <p class="introducao">Use seu CPF e sua senha. No primeiro acesso, use a senha temporária recebida por SMS ou WhatsApp.</p>
+  <div class="mensagem erro" role="alert" th:if="${param.erro != null}">
+    <p><strong>Não foi possível entrar.</strong></p>
+    <p>Confira seu CPF e sua senha. A senha temporária vale por 24 horas. Após 5 erros seguidos, aguarde 15 minutos para tentar novamente. Se precisar de ajuda, procure a entidade.</p>
+  </div>
+  <div class="mensagem" role="status" th:if="${param.expirado != null}">
+    <p>Seu acesso precisa ser confirmado novamente. Entre com sua senha atual.</p>
+  </div>
+  <p class="mensagem" role="status" th:if="${param.senhaAlterada != null}">Senha salva. Entre com sua nova senha para continuar.</p>
+  <p class="mensagem" role="status" th:if="${param.saiu != null}">Você saiu da sua conta.</p>
+  <form th:action="@{/morador/entrar}" method="post">
+    <div class="campo">
+      <label for="cpf">CPF</label>
+      <input id="cpf" name="cpf" type="text" inputmode="numeric" autocomplete="username" required th:value="${cpfTentado}">
+    </div>
+    <div class="campo">
+      <label for="senha">Senha</label>
+      <input id="senha" name="senha" type="password" autocomplete="current-password" required>
+    </div>
+    <button type="submit">Entrar como morador</button>
+  </form>
+</main>
+</body>
+</html>
