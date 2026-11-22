@@ -1,0 +1,17 @@
+<!doctype html><html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Morador · Alertas comunitários</title><link rel="stylesheet" th:href="@{/css/residencias.css}"></head>
+<body class="gestao"><header class="cabecalho"><a th:href="@{/representante}">Alertas comunitários</a>
+<nav aria-label="Navegação do representante"><a th:href="@{/areas}">Áreas de risco</a><a th:href="@{/residencias}">Residências</a><a th:href="@{/moradores}">Moradores</a><a th:href="@{/auditoria}">Auditoria</a>
+<form th:action="@{/sair}" method="post"><button class="secundario" type="submit">Sair</button></form></nav></header><main>
+<h1 th:text="${morador.nomeCompleto}"></h1>
+<p class="mensagem erro" role="alert" th:if="${erro}" th:text="${erro}"></p>
+<p th:text="${morador.ativa ? 'Conta ativa' : 'Conta desativada'}"></p>
+<p>Canal da senha temporária: <strong th:text="${morador.canalCredenciais.name() == 'SMS' ? 'SMS' : 'WhatsApp'}"></strong></p>
+<p>Preferência para alertas: <strong th:text="${morador.preferenciaAlertas.name() == 'AMBOS' ? 'SMS e WhatsApp' : (morador.preferenciaAlertas.name() == 'SMS' ? 'SMS' : 'WhatsApp')}"></strong></p>
+<p class="mensagem" role="status" th:unless="${morador.credenciaisPendentes}">Envio simulado da senha temporária concluído. Nenhuma mensagem real foi enviada; a senha não é exibida nem guardada em texto.</p>
+<section class="manutencao" th:if="${morador.credenciaisPendentes}" aria-labelledby="titulo-falha"><h2 id="titulo-falha">A senha temporária não foi entregue</h2>
+<p role="alert">O envio simulado falhou. Tente novamente pelo mesmo canal escolhido no cadastro.</p>
+<form th:if="${morador.ativa}" th:action="@{/moradores/{id}/reenviar-senha(id=${morador.id})}" method="post"><button type="submit">Reenviar senha temporária</button></form></section>
+<p class="voltar"><a th:href="@{/moradores}">Voltar para moradores</a></p>
+</main></body></html>

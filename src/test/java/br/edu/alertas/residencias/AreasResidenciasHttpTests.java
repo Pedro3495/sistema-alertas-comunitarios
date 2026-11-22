@@ -97,7 +97,7 @@ class AreasResidenciasHttpTests {
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(principal, null,
                 List.of(new SimpleGrantedAuthority("REPRESENTANTE"))));
         try {
-            var morador = moradores.cadastrarBase(new DadosMorador("Pessoa fictícia", "52998224725", "81900000001",
+            var morador = moradores.cadastrar(new DadosMorador("Pessoa fictícia", "52998224725", "81900000001",
                     id, CanalCredenciais.WHATSAPP, PreferenciaAlertas.SMS));
             moradores.desativar(morador.getId());
         } finally { SecurityContextHolder.clearContext(); }

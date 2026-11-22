@@ -1,0 +1,16 @@
+<!doctype html><html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moradores · Alertas comunitários</title><link rel="stylesheet" th:href="@{/css/residencias.css}"></head>
+<body class="gestao"><header class="cabecalho"><a th:href="@{/representante}">Alertas comunitários</a>
+<nav aria-label="Navegação do representante"><a th:href="@{/areas}">Áreas de risco</a><a th:href="@{/residencias}">Residências</a><a th:href="@{/moradores}">Moradores</a><a th:href="@{/auditoria}">Auditoria</a>
+<form th:action="@{/sair}" method="post"><button class="secundario" type="submit">Sair</button></form></nav></header><main>
+<div class="titulo-acoes"><h1>Moradores</h1><a class="botao" th:href="@{/moradores/novo}">Cadastrar morador</a></div>
+<p>Pesquise por nome completo, CPF ou celular.</p>
+<form class="filtros" th:action="@{/moradores}" method="get">
+<div><label for="termo">Nome, CPF ou celular</label><input id="termo" name="termo" th:value="${termo}"></div>
+<button type="submit">Pesquisar</button><a th:href="@{/moradores}">Limpar</a></form>
+<p th:if="${#lists.isEmpty(moradores)}">Nenhum morador encontrado.</p>
+<ul class="resultados"><li th:each="morador : ${moradores}"><div><h2 th:text="${morador.nomeCompleto}"></h2>
+<p><span th:text="${morador.ativa ? 'Conta ativa' : 'Conta desativada'}"></span><span th:if="${morador.credenciaisPendentes}"> · Senha temporária não entregue (envio simulado falhou)</span></p></div>
+<a class="botao secundario" th:href="@{/moradores/{id}(id=${morador.id})}">Ver morador</a></li></ul>
+</main></body></html>

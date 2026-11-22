@@ -62,4 +62,4 @@ docker compose up -d --wait db
 
 O CI repete a compilação e os testes com PostgreSQL novo em cada PR. O teste inicial verifica conexão real, migração, página HTTP e bloqueio de rota não autorizada; não comprova nenhum RF concluído.
 
-Nenhum provedor de SMS/WhatsApp, deploy público da aplicação ou serviço pago está configurado. Essas integrações entram nas tarefas correspondentes, com escolha técnica registrada e testes reais antes de serem declaradas prontas.
+Nenhum provedor de SMS/WhatsApp, deploy público da aplicação ou serviço pago está configurado. Essas integrações entram nas tarefas correspondentes, com escolha técnica registrada e testes reais antes de serem declaradas prontas. A senha temporária do cadastro de moradores usa um simulador local (`EnvioCredenciaisSimulado`, sem rede); envio simulado não é envio real.

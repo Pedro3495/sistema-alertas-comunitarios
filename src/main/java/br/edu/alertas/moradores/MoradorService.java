@@ -5,10 +5,14 @@ import br.edu.alertas.auditoria.UsuarioAtual;
 import br.edu.alertas.residencias.Residencia;
 import br.edu.alertas.residencias.ResidenciaRepository;
 import jakarta.persistence.EntityNotFoundException;
+import java.security.SecureRandom;
+import java.time.Clock;
+import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,23 +23,59 @@ public class MoradorService {
     private final ResidenciaRepository residencias;
     private final UsuarioAtual usuarios;
     private final AuditoriaService auditoria;
+    private final EnvioCredenciais envio;
+    private final PasswordEncoder encoder;
+    private final Clock clock;
+    private static final SecureRandom ALEATORIO = new SecureRandom();
+    private static final String ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
 
-    public MoradorService(MoradorRepository repository, ResidenciaRepository residencias,
-            UsuarioAtual usuarios, AuditoriaService auditoria) {
+    public MoradorService(MoradorRepository repository, ResidenciaRepository residencias, UsuarioAtual usuarios,
+            AuditoriaService auditoria, EnvioCredenciais envio, PasswordEncoder encoder, Clock clock) {
         this.repository = repository; this.residencias = residencias;
         this.usuarios = usuarios; this.auditoria = auditoria;
+        this.envio = envio; this.encoder = encoder; this.clock = clock;
     }
 
-    // Cadastro público depende do envio imediato da senha temporária pelo provedor ainda não escolhido.
     @Transactional
-    public Morador cadastrarBase(DadosMorador dados) {
+    public Morador cadastrar(DadosMorador dados) {
         usuarios.exigirRepresentante();
         if (dados == null) { throw new IllegalArgumentException("Informe os dados do morador."); }
         Morador morador = new Morador(dados, residencia(dados.residenciaId()));
         exigirDisponibilidade(dados.cpf(), dados.celular(), null);
         repository.saveAndFlush(morador);
         auditoria.registrar("CADASTRAR_MORADOR #" + morador.getId());
+        enviarSenhaTemporaria(morador);
         return morador;
+    }
+
+    // RF005 regra 6: reenvio manual somente após falha, pelo mesmo canal escolhido.
+    @Transactional
+    public Morador reenviarSenhaTemporaria(Long id) {
+        usuarios.exigirRepresentante();
+        Morador morador = bloqueado(id);
+        if (!morador.isAtiva() || !morador.isCredenciaisPendentes()) {
+            throw new IllegalStateException("O reenvio só é permitido para conta ativa cujo envio falhou.");
+        }
+        enviarSenhaTemporaria(morador);
+        return morador;
+    }
+
+    // shortcut: envio dentro da transação; com provedor real, enviar após o commit para não avisar cadastro revertido.
+    private void enviarSenhaTemporaria(Morador morador) {
+        StringBuilder senha = new StringBuilder();
+        for (int i = 0; i < 10; i++) { senha.append(ALFABETO.charAt(ALEATORIO.nextInt(ALFABETO.length()))); }
+        morador.emitirSenhaTemporaria(encoder.encode(senha), clock.instant().plus(Duration.ofHours(24)));
+        boolean aceito;
+        try {
+            aceito = envio.enviarSenhaTemporaria(morador.getCanalCredenciais(), morador.getCelular(), senha.toString());
+        } catch (RuntimeException falha) {
+            aceito = false; // a falha do provedor não pode desfazer o cadastro; a entidade reenvia manualmente.
+        }
+        morador.registrarEnvio(aceito);
+        repository.flush();
+        // shortcut: rótulo fixo "SIMULADO" enquanto só existe o simulador; trocar ao integrar provedor real.
+        auditoria.registrar((aceito ? "ENVIO_SIMULADO_SENHA_TEMPORARIA_" : "FALHA_ENVIO_SIMULADO_SENHA_TEMPORARIA_")
+                + morador.getCanalCredenciais() + " #" + morador.getId());
     }
 
     @Transactional

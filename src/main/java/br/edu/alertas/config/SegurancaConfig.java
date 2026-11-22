@@ -51,7 +51,7 @@ public class SegurancaConfig {
                         .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
                         .requestMatchers("/", "/css/**", "/js/ocorrencias.js", "/actuator/health", "/entrar").permitAll()
                         .requestMatchers("/trocar-senha").hasAuthority("TROCAR_SENHA")
-                        .requestMatchers("/representante", "/auditoria", "/areas", "/areas/**", "/residencias", "/residencias/**", "/ocorrencias", "/ocorrencias/**").hasAuthority("REPRESENTANTE")
+                        .requestMatchers("/representante", "/auditoria", "/areas", "/areas/**", "/residencias", "/residencias/**", "/moradores", "/moradores/**", "/ocorrencias", "/ocorrencias/**").hasAuthority("REPRESENTANTE")
                         .anyRequest().denyAll())
                 .formLogin(form -> form.loginPage("/entrar").loginProcessingUrl("/entrar")
                         .usernameParameter("login").passwordParameter("senha")
