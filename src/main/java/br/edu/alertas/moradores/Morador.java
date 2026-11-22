@@ -40,6 +40,8 @@ public class Morador {
     private BloqueioLogin bloqueio = new BloqueioLogin();
     @Column(name = "versao_credencial", nullable = false)
     private long versaoCredencial;
+    @Embedded
+    private CodigoRecuperacao codigoRecuperacao = new CodigoRecuperacao();
 
     protected Morador() { }
 
@@ -104,6 +106,17 @@ public class Morador {
         senhaHash = hash;
         trocaSenhaObrigatoria = false;
         versaoCredencial++;
+    }
+
+    void emitirCodigoRecuperacao(String hash, Instant agora) { codigoRecuperacao.emitir(hash, agora); }
+
+    // RF007 regra 3: o código só autoriza criar a nova senha; a entrada continua sendo por CPF e senha.
+    boolean redefinirSenhaComCodigo(String codigo, String novoHash, Instant agora, PasswordEncoder encoder) {
+        if (!ativa || !codigoRecuperacao.conferir(codigo, agora, encoder)) { return false; }
+        codigoRecuperacao.invalidar();
+        definirSenhaDefinitiva(novoHash);
+        credenciaisPendentes = false; // a senha agora é da pessoa; o reenvio de temporária não pode sobrescrevê-la
+        return true;
     }
 
     void desativar() { if (ativa) { versaoCredencial++; } ativa = false; }

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Redefinir senha · Alertas comunitários</title>
+  <link rel="stylesheet" th:href="@{/css/acesso.css}">
+</head>
+<body>
+<header><a th:href="@{/}">Alertas comunitários</a></header>
+<main id="conteudo">
+  <h1>Redefinir senha</h1>
+  <p class="introducao">Se o telefone estiver cadastrado, você receberá um código.</p>
+  <div class="mensagem erro" role="alert" th:if="${erroCodigo}">
+    <p><strong>Código inválido.</strong></p>
+    <p>O código vale por 10 minutos e para um único uso. Após 5 erros ele deixa de valer: solicite um novo código.</p>
+  </div>
+  <form th:action="@{/morador/recuperar/codigo}" method="post">
+    <div class="campo">
+      <label for="codigo">Código recebido</label>
+      <input id="codigo" name="codigo" type="text" inputmode="numeric" autocomplete="one-time-code" required
+             aria-describedby="orientacaoCodigo">
+      <p id="orientacaoCodigo" class="orientacao">Válido por 10 minutos e para um único uso.</p>
+    </div>
+    <div class="campo">
+      <label for="novaSenha">Nova senha</label>
+      <input id="novaSenha" name="novaSenha" type="password" autocomplete="new-password" required
+             aria-describedby="orientacaoSenha erroSenha" th:attr="aria-invalid=${erroSenha != null}">
+      <p id="orientacaoSenha" class="orientacao">Use no mínimo 8 caracteres. Não é obrigatório combinar letras, números e símbolos.</p>
+      <p id="erroSenha" class="erro-campo" role="alert" th:text="${erroSenha}"></p>
+    </div>
+    <button type="submit">Validar e redefinir</button>
+  </form>
+  <p>Depois, entre com CPF e nova senha.</p>
+  <p><a th:href="@{/morador/recuperar}">Solicitar novo código</a></p>
+</main>
+</body>
+</html>

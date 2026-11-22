@@ -180,6 +180,62 @@ class MoradoresHttpTests {
         assertThat(desconhecido.headers().firstValue("Location").orElseThrow()).endsWith("/morador/entrar?erro");
     }
 
+    @Test
+    void moradorRecuperaAcessoPorCodigoNoTelefoneECriaNovaSenhaSemEntrarDireto(CapturedOutput saida) throws Exception {
+        cadastrarPeloRepresentante();
+        String temporaria = senhaEnviada();
+        var morador = new Navegador();
+        String entrar = morador.get("/morador/entrar").body();
+        assertThat(entrar).contains("href=\"/morador/recuperar\"");
+        String pagina = morador.get("/morador/recuperar").body();
+        assertThat(pagina).contains("Confirme o telefone", "Procure a entidade pública");
+        assertThat(morador.form("/morador/recuperar", Map.of("celular", "81900000001")).statusCode()).as("sem CSRF").isEqualTo(403);
+        assertThat(morador.get("/morador/recuperar/codigo").headers().firstValue("Location").orElseThrow())
+                .as("sem telefone confirmado").endsWith("/morador/recuperar");
+
+        var envioCodigo = morador.post("/morador/recuperar", pagina, Map.of("celular", "(81) 90000-0001"));
+        assertThat(envioCodigo.headers().firstValue("Location").orElseThrow()).endsWith("/morador/recuperar/codigo");
+        var codigos = ArgumentCaptor.forClass(String.class);
+        verify(envio).enviarCodigoRecuperacao(eq(CanalCredenciais.SMS), eq("81900000001"), codigos.capture());
+        String codigo = codigos.getValue();
+        String formulario = morador.get("/morador/recuperar/codigo").body();
+        assertThat(formulario).contains("10 minutos", "único uso").doesNotContain(codigo, "81900000001");
+
+        var errado = morador.post("/morador/recuperar/codigo", formulario, Map.of("codigo", "000000".equals(codigo) ? "111111" : "000000", "novaSenha", DEFINITIVA));
+        assertThat(errado.body()).contains("Código inválido", "5 erros");
+        var curta = morador.post("/morador/recuperar/codigo", errado.body(), Map.of("codigo", codigo, "novaSenha", "1234567"));
+        assertThat(curta.body()).contains("Use no mínimo 8 caracteres.");
+        var redefinida = morador.post("/morador/recuperar/codigo", curta.body(), Map.of("codigo", codigo, "novaSenha", DEFINITIVA));
+        assertThat(redefinida.headers().firstValue("Location").orElseThrow()).endsWith("/morador/entrar?senhaAlterada");
+        assertThat(morador.get("/morador").headers().firstValue("Location").orElseThrow()).as("código não dá entrada").endsWith("/morador/entrar");
+        assertThat(morador.get("/morador/recuperar/codigo").headers().firstValue("Location").orElseThrow()).endsWith("/morador/recuperar");
+
+        var negada = morador.post("/morador/entrar", morador.get("/morador/entrar").body(), Map.of("cpf", "52998224725", "senha", temporaria));
+        assertThat(negada.headers().firstValue("Location").orElseThrow()).endsWith("/morador/entrar?erro");
+        var entrada = morador.post("/morador/entrar", morador.get("/morador/entrar").body(), Map.of("cpf", "52998224725", "senha", DEFINITIVA));
+        assertThat(entrada.headers().firstValue("Location").orElseThrow()).endsWith("/morador");
+        assertThat(saida.getAll()).doesNotContain(codigo);
+    }
+
+    @Test
+    void falhaNoEnvioDoCodigoInformaEReenviaPeloMesmoCanalETelefoneDesconhecidoNaoERevelado() throws Exception {
+        cadastrarPeloRepresentante();
+        doReturn(false).when(envio).enviarCodigoRecuperacao(any(), any(), any());
+        var morador = new Navegador();
+        var falha = morador.post("/morador/recuperar", morador.get("/morador/recuperar").body(), Map.of("celular", "81900000001"));
+        assertThat(falha.statusCode()).isEqualTo(200);
+        assertThat(falha.body()).contains("O código não foi enviado", "mesmo canal", "Reenviar código", "value=\"81900000001\"");
+        doCallRealMethod().when(envio).enviarCodigoRecuperacao(any(), any(), any());
+        var reenvio = morador.post("/morador/recuperar", falha.body(), Map.of("celular", "81900000001"));
+        assertThat(reenvio.headers().firstValue("Location").orElseThrow()).endsWith("/morador/recuperar/codigo");
+        verify(envio, times(2)).enviarCodigoRecuperacao(eq(CanalCredenciais.SMS), eq("81900000001"), anyString());
+
+        var outro = new Navegador();
+        var desconhecido = outro.post("/morador/recuperar", outro.get("/morador/recuperar").body(), Map.of("celular", "81900000099"));
+        assertThat(desconhecido.headers().firstValue("Location").orElseThrow()).endsWith("/morador/recuperar/codigo");
+        verify(envio, times(2)).enviarCodigoRecuperacao(any(), any(), any());
+    }
+
     private long cadastrarPeloRepresentante() throws Exception {
         var navegador = autenticado();
         var resposta = navegador.post("/moradores/novo", navegador.get("/moradores/novo").body(), dados("52998224725", "81900000001", "SMS"));

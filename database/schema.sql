@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict xUwFeQgZpC2tZNbPpxWt4QPr7qdPYvMYMleR4Uuh6wchYhalcm8VAPa4I0Ekvsb
+\restrict 9vfSINgh0n28qPI80AiBefOmbQ0K2ppgpnzFxV1hgTdVGmk3Jwom5bPhCKlRBLU
 
 -- Dumped from database version 17.10
 -- Dumped by pg_dump version 17.10
@@ -119,11 +119,17 @@ CREATE TABLE public.moradores (
     falhas_login integer DEFAULT 0 NOT NULL,
     bloqueado_ate timestamp with time zone,
     versao_credencial bigint DEFAULT 0 NOT NULL,
+    codigo_recuperacao_hash text,
+    codigo_recuperacao_expira_em timestamp with time zone,
+    falhas_codigo_recuperacao integer DEFAULT 0 NOT NULL,
+    CONSTRAINT ck_moradores_codigo_recuperacao CHECK (((codigo_recuperacao_hash IS NULL) = (codigo_recuperacao_expira_em IS NULL))),
+    CONSTRAINT ck_moradores_falhas_codigo_recuperacao CHECK (((falhas_codigo_recuperacao >= 0) AND (falhas_codigo_recuperacao <= 4))),
     CONSTRAINT ck_moradores_falhas_login CHECK (((falhas_login >= 0) AND (falhas_login <= 5))),
     CONSTRAINT ck_moradores_senha_temporaria CHECK (((senha_hash IS NULL) = (senha_temporaria_expira_em IS NULL))),
     CONSTRAINT ck_moradores_versao_credencial CHECK ((versao_credencial >= 0)),
     CONSTRAINT moradores_canal_credenciais_check CHECK ((canal_credenciais = ANY (ARRAY['SMS'::text, 'WHATSAPP'::text]))),
     CONSTRAINT moradores_celular_check CHECK ((celular ~ '^[0-9]{11}$'::text)),
+    CONSTRAINT moradores_codigo_recuperacao_hash_check CHECK ((codigo_recuperacao_hash ~ '[^[:space:]]'::text)),
     CONSTRAINT moradores_cpf_check CHECK ((cpf ~ '^[0-9]{11}$'::text)),
     CONSTRAINT moradores_nome_completo_check CHECK ((nome_completo ~ '[^[:space:]]'::text)),
     CONSTRAINT moradores_preferencia_alertas_check CHECK ((preferencia_alertas = ANY (ARRAY['SMS'::text, 'WHATSAPP'::text, 'AMBOS'::text]))),
@@ -442,4 +448,4 @@ ALTER TABLE ONLY public.residencias
 -- PostgreSQL database dump complete
 --
 
-\unrestrict xUwFeQgZpC2tZNbPpxWt4QPr7qdPYvMYMleR4Uuh6wchYhalcm8VAPa4I0Ekvsb
+\unrestrict 9vfSINgh0n28qPI80AiBefOmbQ0K2ppgpnzFxV1hgTdVGmk3Jwom5bPhCKlRBLU

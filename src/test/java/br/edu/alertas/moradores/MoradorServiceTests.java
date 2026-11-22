@@ -276,6 +276,8 @@ class MoradorServiceTests {
     void simuladorSemRedeAceitaPorPadraoESimulaFalhaQuandoConfigurado() {
         assertThat(new EnvioCredenciaisSimulado(false).enviarSenhaTemporaria(CanalCredenciais.SMS, "81900000001", "senha-ficticia")).isTrue();
         assertThat(new EnvioCredenciaisSimulado(true).enviarSenhaTemporaria(CanalCredenciais.WHATSAPP, "81900000001", "senha-ficticia")).isFalse();
+        assertThat(new EnvioCredenciaisSimulado(false).enviarCodigoRecuperacao(CanalCredenciais.SMS, "81900000001", "000000")).isTrue();
+        assertThat(new EnvioCredenciaisSimulado(true).enviarCodigoRecuperacao(CanalCredenciais.SMS, "81900000001", "000000")).isFalse();
     }
 
     private String senhaEnviada(int envios, CanalCredenciais canal, String celular) {
