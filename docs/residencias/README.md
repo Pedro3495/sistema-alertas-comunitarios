@@ -32,7 +32,7 @@ O script SQL contém somente estrutura, sem dados das fixtures. Os bancos descar
 
 ## Limites reais
 
-A base persistente de moradores da tarefa #23 acrescenta V8 e FK restritiva para residência, inclusive com morador desativado. A recusa de exclusão também foi testada por HTTP no fluxo existente. O cadastro público de moradores ainda depende do envio real de credenciais; ver [contrato da base](../../specs/entregas/RF001-base.md). Ocorrências ainda não existem: sua migração deverá bloquear a exclusão de área antes de disponibilizar o cadastro. RF003 e RF013 permanecem parciais quanto a essas integrações e à auditoria das ocorrências.
+A base persistente de moradores da tarefa #23 acrescenta V8 e FK restritiva para residência, inclusive com morador desativado. A recusa de exclusão também foi testada por HTTP no fluxo existente. O cadastro público de moradores ainda depende do envio real de credenciais; ver [contrato da base](../../specs/entregas/RF001-base.md). A tarefa #25 acrescenta ocorrências por representantes com V9 e FK restritiva de área, antes da exposição do registro. RF013 continua parcial quanto às demais operações e aos valores anteriores/novos das ocorrências.
 
 O usuário confirmou que ainda não escolheu um provedor de SMS/WhatsApp. A entrega real de senha temporária do morador e códigos de recuperação depende dessa escolha e configuração. Nenhum envio foi simulado como concluído. HTTPS de implantação também permanece pendente.
 
