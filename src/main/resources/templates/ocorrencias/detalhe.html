@@ -117,6 +117,32 @@
       </li>
     </ul>
   </section>
+  <!--/* RF012: só na tela do representante; sem reabertura; justificativa interna (RF008 regra 6, RF012 regra 4). */-->
+  <section th:unless="${morador}" aria-labelledby="titulo-encerramento">
+    <h2 id="titulo-encerramento">Encerrar ocorrência</h2>
+    <p class="mensagem" role="status" th:if="${encerrada}">Ocorrência encerrada.</p>
+    <p class="mensagem erro" role="alert" th:if="${erroEncerramento}" th:text="${erroEncerramento.message}"></p>
+    <th:block th:if="${encerramento == null}">
+      <form method="post" th:action="@{/ocorrencias/{protocolo}/encerramento(protocolo=${ocorrencia.protocolo})}">
+        <label for="encerramento-justificativa">Justificativa interna *</label>
+        <textarea id="encerramento-justificativa" name="justificativa" required th:text="${encerramentoForm?.justificativa}"
+                  th:attr="aria-invalid=${erroEncerramento != null and erroEncerramento.campo == 'justificativa'}"></textarea>
+        <label for="encerramento-resumo">Resumo do motivo para o aviso (obrigatório se a ocorrência já tiver alerta)</label>
+        <textarea id="encerramento-resumo" name="resumo" th:text="${encerramentoForm?.resumo}"
+                  th:attr="aria-invalid=${erroEncerramento != null and erroEncerramento.campo == 'resumo'}"></textarea>
+        <label for="encerramento-orientacoes">Orientações, quando necessárias</label>
+        <textarea id="encerramento-orientacoes" name="orientacoes" th:text="${encerramentoForm?.orientacoes}"></textarea>
+        <p class="orientacao">Depois do encerramento a ocorrência fica apenas para consulta: sem novas alterações nem reabertura.</p>
+        <p class="orientacao">Se a ocorrência já tiver alerta, quem o recebeu ganha um aviso de encerramento com o resumo e as orientações, sem a justificativa.</p>
+        <button type="submit">Encerrar e notificar</button>
+      </form>
+    </th:block>
+    <div th:if="${encerramento}" class="verificacoes">
+      <p><strong>Encerrada · somente consulta</strong> · <span th:text="${encerramento.representanteNome}"></span> ·
+        <time th:datetime="${encerramento.encerradaEm}" th:text="${encerramento.encerradaEm}"></time></p>
+      <p class="descricao" th:text="${'Justificativa: ' + encerramento.justificativa}"></p>
+    </div>
+  </section>
   <!--/* RF010: emissão manual, só de ocorrência Confirmada; alertas e avisos ficam preservados, sem edição nem exclusão. */-->
   <section th:unless="${morador}" aria-labelledby="titulo-alertas">
     <h2 id="titulo-alertas">Alertas</h2>
