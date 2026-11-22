@@ -1,0 +1,27 @@
+<!doctype html><html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cadastro de residência · Alertas comunitários</title><link rel="stylesheet" th:href="@{/css/residencias.css}"></head>
+<body class="gestao"><header class="cabecalho"><a th:href="@{/representante}">Alertas comunitários</a>
+<nav aria-label="Navegação do representante"><a th:href="@{/areas}">Áreas de risco</a><a th:href="@{/residencias}">Residências</a><a th:href="@{/auditoria}">Auditoria</a>
+<form th:action="@{/sair}" method="post"><button class="secundario" type="submit">Sair</button></form></nav></header><main>
+<h1 th:text="${id == null ? 'Cadastrar residência' : 'Editar residência'}"></h1>
+<p>Preencha o endereço e selecione a área de risco correspondente.</p>
+<p class="mensagem erro" role="alert" th:if="${erro}" th:text="${erro}"></p>
+<div class="mensagem" th:if="${#lists.isEmpty(areas)}"><p>Cadastre uma área de risco antes de cadastrar a residência.</p><a th:href="@{/areas/novo}">Cadastrar área de risco</a></div>
+<form class="formulario" th:action="${id == null} ? @{/residencias/novo} : @{/residencias/{id}/editar(id=${id})}" method="post">
+<div class="campo"><label for="ruaLogradouro">Rua ou logradouro</label><input id="ruaLogradouro" name="ruaLogradouro" th:value="${dados.ruaLogradouro}" required th:attr="aria-invalid=${erros.containsKey('ruaLogradouro')}" aria-describedby="erro-ruaLogradouro"><p class="erro-campo" id="erro-ruaLogradouro" role="alert" th:text="${erros.get('ruaLogradouro')}"></p></div>
+<div class="campo"><label for="numero">Número</label><input id="numero" name="numero" th:value="${dados.numero}" required th:attr="aria-invalid=${erros.containsKey('numero')}" aria-describedby="erro-numero orientacao-numero"><p class="orientacao" id="orientacao-numero">Se não houver número, informe sem número ou s/n.</p><p class="erro-campo" id="erro-numero" role="alert" th:text="${erros.get('numero')}"></p></div>
+<div class="campo"><label for="bairro">Bairro</label><input id="bairro" name="bairro" th:value="${dados.bairro}" required th:attr="aria-invalid=${erros.containsKey('bairro')}" aria-describedby="erro-bairro"><p class="erro-campo" id="erro-bairro" role="alert" th:text="${erros.get('bairro')}"></p></div>
+<div class="campo"><label for="municipio">Município</label><input id="municipio" name="municipio" th:value="${dados.municipio}" required th:attr="aria-invalid=${erros.containsKey('municipio')}" aria-describedby="erro-municipio"><p class="erro-campo" id="erro-municipio" role="alert" th:text="${erros.get('municipio')}"></p></div>
+<div class="campo"><label for="complemento">Complemento (opcional)</label><input id="complemento" name="complemento" th:value="${dados.complemento}" th:attr="aria-invalid=${erros.containsKey('complemento')}" aria-describedby="erro-complemento"><p class="erro-campo" id="erro-complemento" role="alert" th:text="${erros.get('complemento')}"></p></div>
+<div class="campo"><label for="pontoReferencia">Ponto de referência (opcional)</label><input id="pontoReferencia" name="pontoReferencia" th:value="${dados.pontoReferencia}" th:attr="aria-invalid=${erros.containsKey('pontoReferencia')}" aria-describedby="erro-pontoReferencia"><p class="erro-campo" id="erro-pontoReferencia" role="alert" th:text="${erros.get('pontoReferencia')}"></p></div>
+<div class="campo"><label for="areaId">Área de risco</label><select id="areaId" name="areaId" required th:attr="aria-invalid=${erros.containsKey('areaId')}" aria-describedby="erro-areaId orientacao-area">
+<option value="">Selecione uma área de risco</option><option th:if="${areaIndisponivel}" th:value="${dados.areaId}" selected>Área indisponível — selecione outra</option>
+<option th:each="area : ${areas}" th:value="${area.id}" th:text="${area.nome}" th:selected="${#strings.toString(area.id) == dados.areaId}"></option></select>
+<p class="orientacao" id="orientacao-area">Selecione a área cadastrada que corresponde ao endereço.</p><p class="erro-campo" id="erro-areaId" role="alert" th:text="${erros.get('areaId')}"></p></div>
+<button type="submit" th:disabled="${#lists.isEmpty(areas)}">Salvar residência</button></form>
+<section class="manutencao" th:if="${id != null}" aria-labelledby="titulo-excluir"><h2 id="titulo-excluir">Excluir residência</h2>
+<p>A exclusão só será permitida se não houver moradores vinculados.</p><form th:action="@{/residencias/{id}/excluir(id=${id})}" method="post">
+<label class="confirmacao"><input type="checkbox" name="confirmacao" value="true" required>Confirmo que quero excluir esta residência.</label><button class="secundario" type="submit">Excluir residência</button></form></section>
+<p class="voltar"><a th:href="@{/residencias}">Voltar para residências</a></p>
+</main></body></html>
