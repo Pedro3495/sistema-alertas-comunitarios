@@ -32,6 +32,7 @@ Revisão independente de subagente é evidência de revisão técnica, não apro
 | Autenticação de representantes e troca inicial | RF005 + RF004 / #18 | Login web, primeira troca, bloqueio e revogação implementados; 97 testes no conjunto. Contrato `specs/entregas/RF005-representantes.md`, evidências `docs/acesso/README.md`; aguardando revisão/integração |
 | Autorização do administrador, auditoria e telas protegidas | RF004 + RF013 | Gestão de representantes e consulta de auditoria implementadas; 119 testes; conta única por comando local aprovado, sem seed. Ver `docs/administracao/README.md`; aguardando integração |
 | Gestão web de áreas e residências | RF002/RF003 / #21 | 136 testes; FK real e auditoria, aguardando revisão/integração. Limites em `docs/residencias/README.md` |
+| Base interna de moradores e bloqueio residencial | RF001/RF002/RF013 / #23 | 177 testes no conjunto; domínio, serviço autorizado, FK restritiva e auditoria. Sem cadastro público, acesso ou envio de credenciais. Contrato em `specs/entregas/RF001-base.md` |
 | Cadastros e acesso de moradores, ocorrências e alertas | RF001–RF013, conforme dependências | Continuam no escopo aprovado, sem funções fictícias ou mocks declarados prontos |
 
 Não criar datas de entrega ou metas técnicas que não foram informadas. Solicitar decisão de Pedro quando faltar uma regra indispensável; continuar o trabalho que não depende da resposta.
