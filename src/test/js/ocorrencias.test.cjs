@@ -78,9 +78,12 @@ function pagina(chave, armazenamentoLocal, fetch) {
   global.FormData = class {
     constructor() {
       this.campos = { _csrf: ['token-somente-na-rede'] };
-      for (const campo of ['envioId', ...Object.keys(dadosValidos)]) this.campos[campo] = [elementos[campo].value];
+      for (const campo of ['envioId', ...Object.keys(dadosValidos)]) {
+        if (!elementos[campo].disabled) this.campos[campo] = [elementos[campo].value];
+      }
     }
     delete(campo) { delete this.campos[campo]; }
+    set(campo, valor) { this.campos[campo] = [valor]; }
     append(campo, valor) { (this.campos[campo] ||= []).push(valor); }
   };
   return { form, elementos, listeners, navegacao: () => navegacao };
@@ -205,8 +208,8 @@ test('campos obrigatórios e Outros separado, sem limites de texto adicionais', 
 test('rascunho clonado com Blobs persiste em nova conexão; contas e envioId isolam remoção', async () => {
   const a = armazenamento();
   const banco = await abrirBanco(a.indexedDB);
-  await guardar(banco, { chave: 'REPRESENTANTE:1', envioId: 'a', fotos: [jpeg()] });
-  await guardar(banco, { chave: 'REPRESENTANTE:2', envioId: 'a', fotos: [jpeg()] });
+  await guardar(banco, { chave: 'REPRESENTANTE:1', envioId: 'a', fotos: [jpeg()], tentativaIncerta: true });
+  await guardar(banco, { chave: 'REPRESENTANTE:2', envioId: 'a', fotos: [jpeg()], tentativaIncerta: true });
   const recarregado = await recuperar(await abrirBanco(a.indexedDB), 'REPRESENTANTE:1');
   assert.equal(await tipoImagem(recarregado.fotos[0]), 'image/jpeg');
   assert.equal(await removerConfirmado(banco, 'REPRESENTANTE:1', 'outro-envio'), false);
@@ -342,4 +345,51 @@ test('seleção inválida preserva fotos anteriores e bloqueia envio até nova s
   await p.listeners.get('fotos:change')({ target: p.elementos.fotos });
   assert.deepEqual(a.registros.get('REPRESENTANTE:1').fotos.map(foto => foto.blob.size), [40, 50]);
   assert.equal(p.elementos.revisao.checked, false);
+});
+
+test('resposta perdida congela o conteúdo tentado até confirmação; 400 libera a correção', async () => {
+  const a = armazenamento();
+  const protocolo = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+  const corpos = [];
+  let retorno = () => { throw new TypeError('resposta perdida após commit'); };
+  const fetch = async (_url, request) => { corpos.push(request.body.campos); return retorno(); };
+  let p = pagina('REPRESENTANTE:1', a, fetch);
+  await iniciarFormulario(p.form);
+  await preencher(p);
+  await enviar(p);
+  assert.equal(p.elementos.descricao.disabled, true);
+  assert.equal(p.elementos.fotos.disabled, true);
+  assert.equal(p.elementos.revisao.disabled, undefined);
+  // Edição forçada durante a incerteza não altera o envio nem o rascunho.
+  p.elementos.descricao.value = 'Correção que o servidor não receberia';
+  await p.listeners.get('form:input')({ target: p.elementos.descricao });
+  await p.listeners.get('fotos:change')({ target: { ...p.elementos.fotos, files: [jpeg(40)] } });
+  assert.equal(p.elementos.descricao.value, dadosValidos.descricao);
+  assert.equal(a.registros.get('REPRESENTANTE:1').dados.descricao, dadosValidos.descricao);
+  assert.equal(a.registros.get('REPRESENTANTE:1').fotos[0].blob.size, 24);
+  assert.equal(a.registros.get('REPRESENTANTE:1').tentativaIncerta, true);
+
+  p = pagina('REPRESENTANTE:1', a, fetch);
+  await iniciarFormulario(p.form);
+  assert.equal(p.elementos.descricao.disabled, true);
+  assert.match(p.elementos['rascunho-status'].textContent, /pode já ter sido registrada/);
+  retorno = () => resposta(400, { campo: 'areaId', erro: 'Selecione uma área de risco disponível.' });
+  p.elementos.revisao.checked = true;
+  await enviar(p);
+  assert.equal(p.elementos.descricao.disabled, false);
+  assert.equal(a.registros.get('REPRESENTANTE:1').tentativaIncerta, false);
+  p.elementos.descricao.value = 'Descrição corrigida';
+  await p.listeners.get('form:input')({ target: p.elementos.descricao });
+  for (let i = 0; i < 4; i++) await imediato();
+  assert.equal(a.registros.get('REPRESENTANTE:1').dados.descricao, 'Descrição corrigida');
+
+  retorno = () => resposta(200, { protocolo, detalheUrl: '/ocorrencias/' + protocolo });
+  p.elementos.revisao.checked = true;
+  await enviar(p);
+  assert.deepEqual(corpos.map(c => c.descricao[0]), [dadosValidos.descricao, dadosValidos.descricao, 'Descrição corrigida']);
+  assert.ok(corpos.every(c => c.envioId[0] === corpos[0].envioId[0]));
+  assert.equal(p.navegacao(), '/ocorrencias/' + protocolo);
+  p.elementos.protocolo.textContent = protocolo;
+  await iniciarDetalhe({ dataset: { rascunhoChave: 'REPRESENTANTE:1', envioId: corpos[0].envioId[0] } });
+  assert.equal(a.registros.has('REPRESENTANTE:1'), false);
 });
