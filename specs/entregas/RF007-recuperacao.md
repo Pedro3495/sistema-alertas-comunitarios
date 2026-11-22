@@ -48,7 +48,7 @@ Branch `Pedro3495/rf007-limite-auditoria`, base `main`.
 | Recusa genérica, sem envio, sem revelar se a conta existe | Acima do limite retorna `SOLICITADO`, a mesma resposta do telefone desconhecido; nada é enviado e o código vigente não é trocado. A tela do código informa o limite para todos. |
 | Auditar pedidos, recusas e redefinições concluídas, sem código nem senha | Reaproveita `registros_auditoria`/`RegistroAuditoria`: novo `AuditoriaService.registrarMorador(acao, moradorId)` grava `SOLICITAR_CODIGO_RECUPERACAO`, `RECUSAR_CODIGO_RECUPERACAO_LIMITE` e `REDEFINIR_SENHA_RECUPERACAO` com responsável `MORADOR #id`. Telefone desconhecido não gera registro (não há responsável). |
 
-Persistência: `V13__auditoria_recuperacao_morador.sql` só amplia o CHECK de `responsavel_tipo` para aceitar `MORADOR`; V1–V12 preservadas; `database/schema.sql` ajustado na mesma restrição. A tela de auditoria mostra esses registros como `MORADOR #id`; o filtro por responsável continua listando apenas administradores e representantes.
+Persistência: `V14__auditoria_recuperacao_morador.sql` só amplia o CHECK de `responsavel_tipo` para aceitar `MORADOR`; V1–V13 preservadas; `database/schema.sql` ajustado na mesma restrição. A tela de auditoria mostra esses registros como `MORADOR #id`; o filtro por responsável continua listando apenas administradores e representantes.
 
 Teste: `tresPedidosPorHoraEmJanelaMovelComRecusaIgualAoSucessoEAuditoriaSemSegredo` (relógio controlado: pedidos em 0, 20 e 40 min passam; o 4º em 59 min recebe a mesma resposta de telefone desconhecido e nada é enviado; aos 60 min libera e redefine; registros na ordem esperada e sem código ou senha).
 
