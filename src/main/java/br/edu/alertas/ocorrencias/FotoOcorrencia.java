@@ -64,10 +64,10 @@ public class FotoOcorrencia {
             } else if (tamanho == 0) { tamanho = bytes.length - posicao; }
             if (tamanho < cabecalho || tamanho > bytes.length - posicao) { throw erroFormato(); }
             if (posicao == 0) {
-                if (!tipo.equals("ftyp") || tamanho < 16 || tamanho % 4 != 0) { throw erroFormato(); }
+                if (!tipo.equals("ftyp") || tamanho < cabecalho + 8 || tamanho % 4 != 0) { throw erroFormato(); }
                 var marcas = Set.of("heic", "heix", "hevc", "hevx", "heim", "heis", "hevm", "hevs", "mif1", "msf1");
-                for (int i = 8; i + 4 <= tamanho; i += 4) {
-                    if (i == 12) { continue; }
+                for (int i = cabecalho; i + 4 <= tamanho; i += 4) {
+                    if (i == cabecalho + 4) { continue; }
                     if (Set.of("avif", "avis").contains(texto(bytes, i))) { throw erroFormato(); }
                     String identificador = texto(bytes, i);
                     marca |= marcas.contains(identificador);
