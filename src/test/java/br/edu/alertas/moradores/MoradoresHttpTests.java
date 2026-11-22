@@ -49,6 +49,9 @@ class MoradoresHttpTests {
     @AfterEach
     void limpar() {
         reset(envio);
+        jdbc.update("""
+                DELETE FROM registros_auditoria WHERE responsavel_tipo = 'MORADOR'
+                AND responsavel_id IN (SELECT id FROM moradores WHERE residencia_id = ?)""", residencia);
         jdbc.update("DELETE FROM moradores WHERE residencia_id = ?", residencia);
         jdbc.update("DELETE FROM residencias WHERE id = ?", residencia);
         jdbc.update("DELETE FROM areas_risco WHERE id = ?", area);
