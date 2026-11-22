@@ -4,6 +4,13 @@ import br.edu.alertas.administracao.AdministradorService;
 import br.edu.alertas.representantes.AutenticacaoRepresentanteService;
 import br.edu.alertas.representantes.Representante;
 import br.edu.alertas.representantes.RepresentanteService;
+import br.edu.alertas.moradores.CanalCredenciais;
+import br.edu.alertas.moradores.DadosMorador;
+import br.edu.alertas.moradores.MoradorService;
+import br.edu.alertas.moradores.PreferenciaAlertas;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,6 +61,7 @@ class AreasResidenciasHttpTests {
     @Autowired AutenticacaoRepresentanteService autenticacao;
     @Autowired AdministradorService administradores;
     @Autowired JdbcTemplate jdbc;
+    @Autowired MoradorService moradores;
     @MockitoBean Clock clock;
 
     private final List<Long> representantesCriados = new ArrayList<>();
@@ -71,12 +79,34 @@ class AreasResidenciasHttpTests {
     @AfterEach
     void removeApenasFixturesDesteTeste() {
         representantesCriados.forEach(id -> jdbc.update("DELETE FROM registros_auditoria WHERE responsavel_tipo = 'REPRESENTANTE' AND responsavel_id = ?", id));
+        ruasCriadas.forEach(rua -> jdbc.update("DELETE FROM moradores WHERE residencia_id IN (SELECT id FROM residencias WHERE rua_logradouro = ?)", rua));
         ruasCriadas.forEach(rua -> jdbc.update("DELETE FROM residencias WHERE rua_logradouro = ?", rua));
         nomesAreas.forEach(nome -> jdbc.update("DELETE FROM areas_risco WHERE nome = ?", nome));
         representantesCriados.forEach(id -> jdbc.update("DELETE FROM representantes WHERE id = ?", id));
         if (loginAdminCriado != null) {
             jdbc.update("DELETE FROM administradores WHERE id = 1 AND login = ?", loginAdminCriado);
         }
+    }
+
+    @Test
+    void residenciaComMoradorDesativadoNaoPodeSerExcluidaPorHttp() throws Exception {
+        Navegador navegador = autenticado(ator);
+        long area = area(navegador, "Área Moradores");
+        long id = residencia(navegador, dados(rua("Rua Moradores"), "s/n", "Bairro", "Município", "", "", area));
+        var principal = autenticacao.autenticar(ator.getLogin(), DEFINITIVA).orElseThrow();
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(principal, null,
+                List.of(new SimpleGrantedAuthority("REPRESENTANTE"))));
+        try {
+            var morador = moradores.cadastrarBase(new DadosMorador("Pessoa fictícia", "52998224725", "81900000001",
+                    id, CanalCredenciais.WHATSAPP, PreferenciaAlertas.SMS));
+            moradores.desativar(morador.getId());
+        } finally { SecurityContextHolder.clearContext(); }
+        var antes = acoes();
+        var resposta = navegador.postComCsrf(excluirResidencia(id), navegador.get(editarResidencia(id)).body(), Map.of("confirmacao", "true"));
+        assertThat(resposta.statusCode()).isEqualTo(200);
+        assertThat(resposta.body()).contains("Esta residência possui vínculos e não pode ser excluída.");
+        assertThat(existeResidencia(id)).isTrue();
+        assertThat(acoes()).containsExactlyElementsOf(antes);
     }
 
     @Test

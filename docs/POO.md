@@ -32,3 +32,7 @@ A fachada `GestaoRepresentantesService` aplica autorização e transação do ca
 ## Residências e áreas
 
 `Residencia` valida o endereço completo antes de alterar seus campos privados e mantém uma única referência de área. `ResidenciaService` coordena autorização, persistência e auditoria. `GestaoAreasService` acrescenta as regras da operação autenticada à base de áreas sem colocar decisões de autorização no formulário. Locks e FKs preservam os vínculos em transações concorrentes; a interface de consulta do repositório abstrai o mecanismo de persistência.
+
+## Base de moradores
+
+`Morador` mantém campos privados e valida nome, verificadores do CPF, celular e residência antes de aplicar uma correção. Enums distintos impedem confundir o canal único de credenciais com a preferência de alertas. `MoradorService` coordena autorização, transação e auditoria; a FK e as restrições únicas protegem vínculos e identidade também nas disputas concorrentes. Não há herança artificial nem envio de credenciais nesta base; `MoradorTests` e `MoradorServiceTests` verificam essas regras.
