@@ -23,3 +23,6 @@ select { width: 100%; min-height: 50px; padding: 10px; border: 1px solid #767676
 .confirmacao input { width: 24px; min-height: 24px; height: 24px; flex-shrink: 0; margin: 0; accent-color: #1b1b1b; }
 .voltar { margin: 28px 0 0; }
 @media (max-width: 700px) { .filtros { grid-template-columns: 1fr; } .resultados li { flex-direction: column; align-items: stretch; } .gestao main { padding: 24px 20px; } .titulo-acoes { align-items: stretch; } }
+
+textarea { width: 100%; padding: 12px; resize: vertical; min-height: 120px; border: 1px solid #767676; border-radius: 8px; background: #fff; color: inherit; font: inherit; line-height: 1.5; }
+.descricao { white-space: pre-wrap; }

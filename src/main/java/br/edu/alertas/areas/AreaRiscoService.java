@@ -27,6 +27,21 @@ public class AreaRiscoService {
         return area;
     }
 
+    public AreaRisco buscar(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Área de risco não encontrada."));
+    }
+
+    public List<AreaRisco> listar() {
+        return repository.findAll(org.springframework.data.domain.Sort.by("id"));
+    }
+
+    @Transactional
+    public void excluir(Long id) {
+        repository.delete(buscar(id));
+        repository.flush();
+    }
+
     public List<AreaRisco> pesquisarPorNome(String nome) {
         if (nome == null || nome.isBlank()) {
             throw new IllegalArgumentException("Informe o nome da área de risco para pesquisar.");
