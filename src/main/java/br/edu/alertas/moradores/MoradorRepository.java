@@ -15,4 +15,7 @@ interface MoradorRepository extends JpaRepository<Morador, Long>, JpaSpecificati
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select m from Morador m where m.cpf = :cpf")
     Optional<Morador> buscarPorCpfComBloqueio(String cpf);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select m from Morador m where m.celular = :celular")
+    Optional<Morador> buscarPorCelularComBloqueio(String celular);
 }

@@ -48,3 +48,7 @@ A fachada `GestaoRepresentantesService` aplica autorização e transação do ca
 ## Envio simulado de credenciais
 
 `EnvioCredenciais` é uma porta (interface) com contrato útil: `MoradorService` depende apenas dela para entregar a senha temporária, sem conhecer o provedor. `EnvioCredenciaisSimulado` é a única implementação nesta entrega, sem rede; um provedor real poderá substituí-la por polimorfismo sem mudar o caso de uso. `Morador` encapsula o hash, a validade e a pendência de envio (`emitirSenhaTemporaria`, `registrarEnvio`), sem expor a senha original.
+
+## Recuperação de acesso do morador — RF007
+
+`CodigoRecuperacao` é outro objeto embutido em `Morador`, ao lado de `BloqueioLogin`: encapsula hash, prazo de 10 minutos e contador de erros, e só expõe `emitir`, `conferir` e `invalidar`, de modo que nenhum chamador consegue deixar um código vencido ou esgotado utilizável. `Morador.redefinirSenhaComCodigo` combina essa regra com a de senha definitiva já existente. O mesmo contrato `EnvioCredenciais` ganhou `enviarCodigoRecuperacao`; o caso de uso continua sem conhecer o provedor (simulado).
