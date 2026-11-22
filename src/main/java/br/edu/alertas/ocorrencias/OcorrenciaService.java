@@ -39,7 +39,7 @@ public class OcorrenciaService {
         em.refresh(representante);
         usuarios.exigirRepresentante();
         if (dados == null || dados.envioId() == null) { throw new ErroOcorrencia("envioId", "Reabra o formulário para preparar o envio."); }
-        var existente = repository.findByRepresentanteIdAndEnvioId(ator.id(), dados.envioId());
+        var existente = repository.findByRepresentante_IdAndEnvioId(ator.id(), dados.envioId());
         if (existente.isPresent()) { return existente.get(); }
         if (dados.areaId() == null) { throw new ErroOcorrencia("areaId", "Selecione uma área de risco cadastrada."); }
         var area = areas.findById(dados.areaId()).orElseThrow(() -> new ErroOcorrencia("areaId", "A área selecionada não está disponível. Selecione outra área."));
