@@ -2,7 +2,7 @@
 
 Projeto acadêmico. Em 21/11/2026, Pedro assumiu a continuidade sem o colega, com apoio de IA e subagentes. O fluxo atual é [desenvolvimento orientado por especificação](docs/SDD.md). Base em Java 21, Spring Boot 4.1.2, Spring MVC/Thymeleaf, Spring Data JPA, PostgreSQL 17 e Flyway; Maven Wrapper versionado.
 
-**Estado da branch de desenvolvimento (21/11/2026):** infraestrutura, bases parciais de áreas/representantes e acesso web de representantes com primeira troca implementados, mais gestão administrativa/auditoria inicial, com119testes. Os 13 RF completos continuam em desenvolvimento. A página inicial dá acesso ao login; gestão de representantes está disponível na branch de desenvolvimento. Configure o primeiro administrador pelo [comando local](docs/administracao/README.md). Consulte [o estado das entregas](docs/SDD.md).
+**Estado da branch de desenvolvimento (22/11/2026):** acesso de representantes, gestão administrativa com auditoria inicial e gestão web de áreas/residências implementados, com 136 testes. Os PRs aguardam revisão e integração; os 13 RF não estão concluídos. Configure o primeiro administrador pelo [comando local](docs/administracao/README.md) e consulte [os limites da entrega atual](docs/residencias/README.md).
 
 ## Começar no seu computador
 
@@ -37,13 +37,13 @@ A preparação cria `.env` com senha aleatória local, sobe somente o PostgreSQL
 
 Abra <http://localhost:8080>. Diagnóstico: <http://localhost:8080/actuator/health>. Para encerrar o servidor, use Ctrl+C. `docker compose stop db` para o banco sem apagar seus dados. Se uma porta estiver ocupada, ajuste `POSTGRES_PORT` ou `SERVER_PORT` no `.env` antes de iniciar.
 
-## Trabalhar em dupla com IA
+## Desenvolver com IA
 
-1. Escolham uma tarefa em `docs/tarefas/BACKLOG.md`. Registrem responsável, revisor e branch na issue ou cartão antes de começar.
-2. Atualizem a `main` e criem uma branch de tarefa. Cada IA trabalha apenas na pasta e branch do seu responsável.
-3. Implementem a spec, rodem `./scripts/verificar.sh` ou `./scripts/verificar.ps1` e abram um pull request. O colega revisa e só então integra.
+1. Escolha a issue e leia a spec e o contrato SDD da entrega. Registre responsável e branch.
+2. Trabalhe em branch própria; subagentes usam worktrees separados. Não sobrescreva arquivos de outra execução.
+3. Integre o recorte, execute a verificação com PostgreSQL, revise e abra PR. Merge exige autorização e as proteções remotas.
 
-O passo a passo e os comandos estão em [Fluxo de trabalho](docs/FLUXO_DE_TRABALHO.md). As instruções comuns às IAs estão em [AGENTS.md](AGENTS.md). Usem [o prompt de tarefa](docs/PROMPT_PARA_IA.md) para começar cada execução.
+O fluxo atual está em [SDD](docs/SDD.md) e as instruções comuns em [AGENTS.md](AGENTS.md). O [guia da dupla](docs/FLUXO_DE_TRABALHO.md) preserva a organização inicial e informa a mudança de responsável.
 
 ## Onde consultar
 
