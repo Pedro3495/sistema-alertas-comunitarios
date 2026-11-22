@@ -1,0 +1,17 @@
+@import url("residencias.css");
+[hidden] { display: none !important; }
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.somente-leitor { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+select[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: #a51c25; }
+.fotos-selecionadas { padding-left: 24px; line-height: 1.6; overflow-wrap: anywhere; }
+.protocolo { max-width: 680px; }
+.protocolo p { font-size: 1.2rem; font-weight: 650; overflow-wrap: anywhere; }
+.dados-ocorrencia { max-width: 680px; margin: 28px 0; }
+.dados-ocorrencia div { margin-bottom: 24px; }
+.dados-ocorrencia dt { font-weight: 650; margin-bottom: 8px; }
+.dados-ocorrencia dd { margin: 0; line-height: 1.6; overflow-wrap: anywhere; }
+.evidencias { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.evidencias li { min-width: 0; }
+.evidencias img { display: block; width: 100%; max-height: 360px; object-fit: contain; background: #f1f1f1; border: 1px solid #ccc; border-radius: 8px; margin-bottom: 12px; }
+.evidencias a { display: block; padding-bottom: 8px; overflow-wrap: anywhere; }
+@media (max-width: 540px) { .evidencias { grid-template-columns: 1fr; } }
