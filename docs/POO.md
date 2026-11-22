@@ -64,3 +64,7 @@ A fachada `GestaoRepresentantesService` aplica autorização e transação do ca
 ## Alteração de ocorrências — RF011
 
 `Ocorrencia.alterar` é o único caminho para corrigir tipo, especificação de Outros, descrição, localização e área: reaproveita as validações do registro (`validar`, compartilhado com o construtor), recusa ocorrência encerrada, justificativa vazia e alteração sem mudança, e devolve a `AlteracaoOcorrencia` imutável com justificativa interna e o resumo campo a campo. Fotos, autor e protocolo não têm caminho de mudança. `OcorrenciaService.alterar` autoriza, bloqueia a linha, persiste, audita e reaproveita `AlertaService.avisarAlteracao` do RF010.
+
+## Encerramento de ocorrências — RF012
+
+`Ocorrencia.encerrar` é o único caminho para a situação Encerrada: exige justificativa, recusa novo encerramento e devolve o `EncerramentoOcorrencia` imutável (um por ocorrência, `UNIQUE` na V17). Como `verificar` e `alterar` já recusam Encerrada e `Comunicado.alerta` exige Confirmada, não há reabertura nem novas alterações. O aviso reaproveita `Comunicado` com a fábrica `encerramento` (exige o resumo do motivo) e o mesmo critério de destinatários do aviso de alteração em `AlertaService`; o tipo `ENCERRAMENTO` é só mais um valor de `TipoComunicado`, sem nova hierarquia.

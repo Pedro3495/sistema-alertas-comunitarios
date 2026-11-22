@@ -101,6 +101,32 @@ public class OcorrenciaService {
         return ocorrencia;
     }
 
+    /**
+     * RF012: qualquer representante encerra ocorrência de qualquer área (regras 1 e 4), sem reabertura (alteração).
+     * RF013 regras 1 e 4: auditoria com situação anterior e nova, sem a justificativa interna.
+     * Regras 2 e 3: aviso com resumo do motivo e orientações só se já houver alerta, para a união dos destinatários anteriores ativos.
+     */
+    @Transactional
+    public Ocorrencia encerrar(UUID protocolo, String justificativa, String resumo, String orientacoes) {
+        var ator = usuarios.exigirRepresentante();
+        var representante = representantes.buscarPorIdComBloqueio(ator.id())
+                .orElseThrow(() -> new AccessDeniedException("Entre novamente na sua conta."));
+        em.refresh(representante); // mesma proteção do registrar contra desativação concorrente
+        usuarios.exigirRepresentante();
+        var ocorrencia = repository.buscarComBloqueio(protocolo).orElseThrow(() -> new EntityNotFoundException("Ocorrência não encontrada."));
+        var anterior = ocorrencia.getSituacao();
+        em.persist(ocorrencia.encerrar(justificativa, representante, clock.instant()));
+        auditoria.registrar("ENCERRAR_OCORRENCIA #" + protocolo + ": " + anterior + " -> " + ocorrencia.getSituacao());
+        alertas.avisarEncerramento(ocorrencia, resumo, orientacoes, representante);
+        return ocorrencia;
+    }
+
+    /** RF008 regra 6: justificativa do encerramento só para representantes. */
+    public java.util.Optional<EncerramentoOcorrencia> encerramento(UUID protocolo) {
+        usuarios.exigirRepresentante();
+        return repository.encerramento(protocolo);
+    }
+
     public List<AlteracaoOcorrencia> alteracoes(UUID protocolo) {
         usuarios.exigirRepresentante();
         return repository.alteracoes(protocolo);

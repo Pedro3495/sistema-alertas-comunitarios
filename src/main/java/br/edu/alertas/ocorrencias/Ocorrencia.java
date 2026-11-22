@@ -84,6 +84,14 @@ public class Ocorrencia {
         return new AlteracaoOcorrencia(this, justificativa.strip(), String.join(" ", mudancas), responsavel, agora);
     }
 
+    /** RF012 regras 1 e 4 / alteração: qualquer representante, justificativa obrigatória, sem reabertura nem novo encerramento. */
+    EncerramentoOcorrencia encerrar(String justificativa, Representante responsavel, Instant agora) {
+        if (situacao == SituacaoOcorrencia.ENCERRADA) { throw new ErroOcorrencia("situacao", "Ocorrência encerrada fica disponível apenas para consulta."); }
+        exigir(justificativa, "justificativa", "Informe a justificativa do encerramento.");
+        situacao = SituacaoOcorrencia.ENCERRADA;
+        return new EncerramentoOcorrencia(this, justificativa.strip(), responsavel, agora);
+    }
+
     private static void mudar(List<String> mudancas, String campo, String anterior, String novo) {
         if (java.util.Objects.equals(anterior, novo)) { return; }
         mudancas.add(campo + ": de \"" + (anterior == null ? "" : anterior) + "\" para \"" + (novo == null ? "" : novo) + "\".");

@@ -144,6 +144,7 @@ public class OcorrenciaController {
         }
         model.addAttribute("verificacoes", service.verificacoes(protocolo));
         model.addAttribute("alteracoes", service.alteracoes(protocolo));
+        model.addAttribute("encerramento", service.encerramento(protocolo).orElse(null));
         model.addAttribute("areas", areas.findAll(Sort.by("nome")));
         model.addAttribute("tipos", TipoOcorrencia.values());
         if (!model.containsAttribute("alteracao")) { // RF011: o formulário abre com os valores atuais
@@ -204,6 +205,26 @@ public class OcorrenciaController {
             return detalhe(protocolo, model);
         }
         redirect.addFlashAttribute("alterada", true);
+        return "redirect:/ocorrencias/" + protocolo;
+    }
+
+    // RF012: formulário HTML com CSRF, só para representantes; erro volta à tela com 400 e o texto digitado.
+    @PostMapping("/ocorrencias/{protocolo}/encerramento")
+    String encerrar(@PathVariable UUID protocolo, @RequestParam(defaultValue = "") String justificativa,
+            @RequestParam(defaultValue = "") String resumo, @RequestParam(defaultValue = "") String orientacoes,
+            Model model, HttpServletResponse response, RedirectAttributes redirect) {
+        usuarios.exigirRepresentante();
+        try {
+            service.encerrar(protocolo, justificativa, resumo, orientacoes);
+        } catch (EntityNotFoundException exception) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        } catch (ErroOcorrencia exception) {
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            model.addAttribute("erroEncerramento", exception);
+            model.addAttribute("encerramentoForm", Map.of("justificativa", justificativa, "resumo", resumo, "orientacoes", orientacoes));
+            return detalhe(protocolo, model);
+        }
+        redirect.addFlashAttribute("encerrada", true);
         return "redirect:/ocorrencias/" + protocolo;
     }
 

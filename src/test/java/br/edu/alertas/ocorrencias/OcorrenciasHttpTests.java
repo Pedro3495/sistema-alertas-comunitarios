@@ -377,6 +377,49 @@ class OcorrenciasHttpTests extends OcorrenciasFixtures {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM fotos_ocorrencia f JOIN ocorrencias o ON o.id = f.ocorrencia_id WHERE o.protocolo = ?", Long.class, p)).isEqualTo(1);
     }
 
+    // RF012: encerramento por formulário real com CSRF; aviso ao morador que recebeu o alerta, sem a justificativa interna.
+    @Test
+    void representanteEncerraEMoradorRecebeAvisoSemJustificativaESemNovasAlteracoes() throws Exception {
+        String cpf = novoMorador(area);
+        var p = service.registrar(dados(UUID.randomUUID())).getProtocolo();
+        String rota = "/ocorrencias/" + p + "/encerramento";
+        var rep = autenticado();
+        String token = csrf(rep.get("/ocorrencias/" + p).body());
+        service.verificar(p, SituacaoOcorrencia.CONFIRMADA, "Vistoria fictícia");
+        rep.form("POST", "/ocorrencias/" + p + "/alertas", Map.of("_csrf", token, "titulo", "Alerta fictício", "mensagem", "M", "orientacoes", "O"));
+        assertThat(rep.get("/ocorrencias/" + p).body()).contains("Encerrar ocorrência", "Encerrar e notificar");
+        Map<String, String> campos = new java.util.HashMap<>(Map.of("_csrf", token, "justificativa", "Justificativa interna fictícia",
+                "resumo", "O trecho já não apresenta risco.", "orientacoes", "Volte para casa"));
+
+        var semCsrf = new java.util.HashMap<>(campos);
+        semCsrf.remove("_csrf");
+        assertThat(rep.form("POST", rota, semCsrf).statusCode()).isEqualTo(403);
+        var semResumo = new java.util.HashMap<>(campos);
+        semResumo.put("resumo", "");
+        var erro = rep.form("POST", rota, semResumo);
+        assertThat(erro.statusCode()).isEqualTo(400);
+        assertThat(erro.body()).contains("Informe o resumo do motivo para o aviso de encerramento.", "Justificativa interna fictícia");
+        assertThat(rep.form("POST", "/ocorrencias/" + UUID.randomUUID() + "/encerramento", campos).statusCode()).isEqualTo(404);
+
+        var vizinho = moradorAutenticado(cpf);
+        var tentativa = new java.util.HashMap<>(campos);
+        tentativa.put("_csrf", csrf(vizinho.get("/morador/ocorrencias/novo").body()));
+        assertThat(vizinho.form("POST", rota, tentativa).statusCode()).isIn(302, 403);
+        assertThat(service.buscar(p).getSituacao()).isEqualTo("Confirmada");
+
+        assertThat(rep.form("POST", rota, campos).statusCode()).isEqualTo(302);
+        var tela = rep.get("/ocorrencias/" + p).body();
+        assertThat(tela).contains("Ocorrência encerrada.", "Encerrada · somente consulta", "Justificativa: Justificativa interna fictícia",
+                "Aviso de encerramento: Encerramento da ocorrência " + p).doesNotContain("Encerrar e notificar", "Salvar alteração", "Salvar verificação");
+        assertThat(acoes()).contains("ENCERRAR_OCORRENCIA #" + p + ": Confirmada -> Encerrada");
+        assertThat(rep.form("POST", rota, campos).statusCode()).isEqualTo(400); // sem reabertura nem novo encerramento
+
+        assertThat(vizinho.get("/morador/alertas").body()).contains("Aviso de encerramento: Encerramento da ocorrência " + p,
+                "O trecho já não apresenta risco.", "Volte para casa").doesNotContain("Justificativa interna fictícia");
+        assertThat(vizinho.get("/morador/ocorrencias/" + p).body()).contains("Encerrada").doesNotContain("Encerrar ocorrência", "Justificativa interna fictícia");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM fotos_ocorrencia f JOIN ocorrencias o ON o.id = f.ocorrencia_id WHERE o.protocolo = ?", Long.class, p)).isEqualTo(1);
+    }
+
     private Navegador moradorAutenticado(String cpf) throws Exception {
         var navegador = new Navegador();
         navegador.destino = "/morador/ocorrencias";

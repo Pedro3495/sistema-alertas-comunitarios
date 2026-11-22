@@ -61,8 +61,18 @@ public class AlertaService {
     /** RF009 regra 4 / RF011 regras 2 e 3: só se a ocorrência já teve alerta; chamado dentro da transação da verificação. */
     void avisarAlteracao(Ocorrencia ocorrencia, String resumo, String orientacoes, Representante representante) {
         if (!repository.existsByOcorrencia_IdAndTipo(ocorrencia.getId(), TipoComunicado.ALERTA)) { return; }
-        var aviso = Comunicado.alteracao(ocorrencia, resumo, orientacoes,
-                repository.destinatariosDosAlertas(ocorrencia.getId()), representante, clock.instant());
+        avisar(Comunicado.alteracao(ocorrencia, resumo, orientacoes,
+                repository.destinatariosDosAlertas(ocorrencia.getId()), representante, clock.instant()));
+    }
+
+    /** RF012 regras 2 e 3: mesmo critério do aviso de alteração; sem alerta anterior, nenhum aviso (e o resumo não é exigido). */
+    void avisarEncerramento(Ocorrencia ocorrencia, String resumo, String orientacoes, Representante representante) {
+        if (!repository.existsByOcorrencia_IdAndTipo(ocorrencia.getId(), TipoComunicado.ALERTA)) { return; }
+        avisar(Comunicado.encerramento(ocorrencia, resumo, orientacoes,
+                repository.destinatariosDosAlertas(ocorrencia.getId()), representante, clock.instant()));
+    }
+
+    private void avisar(Comunicado aviso) {
         aviso.distribuir(envio);
         repository.save(aviso);
     }

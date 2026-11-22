@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-/** RF010: alerta emitido ou aviso de alteração. Sem setters: o texto original é preservado (alteração e exclusão). */
+/** RF010: alerta emitido, aviso de alteração (RF011) ou de encerramento (RF012). Sem setters: o texto original é preservado (alteração e exclusão). */
 @Entity
 @Table(name = "comunicados_ocorrencia")
 public class Comunicado {
@@ -52,6 +52,14 @@ public class Comunicado {
     static Comunicado alteracao(Ocorrencia ocorrencia, String resumo, String orientacoes,
             Collection<Morador> destinatariosAnteriores, Representante representante, Instant agora) {
         return new Comunicado(TipoComunicado.ALTERACAO, ocorrencia, "Alteração da ocorrência " + ocorrencia.getProtocolo(),
+                resumo, orientacoes, destinatariosAnteriores, representante, agora);
+    }
+
+    /** RF012 regra 3: protocolo, indicação de encerramento, resumo do motivo e orientações quando necessárias. */
+    static Comunicado encerramento(Ocorrencia ocorrencia, String resumo, String orientacoes,
+            Collection<Morador> destinatariosAnteriores, Representante representante, Instant agora) {
+        exigir(resumo, "resumo", "Informe o resumo do motivo para o aviso de encerramento.");
+        return new Comunicado(TipoComunicado.ENCERRAMENTO, ocorrencia, "Encerramento da ocorrência " + ocorrencia.getProtocolo(),
                 resumo, orientacoes, destinatariosAnteriores, representante, agora);
     }
 
