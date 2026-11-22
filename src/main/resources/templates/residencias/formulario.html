@@ -2,7 +2,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cadastro de residência · Alertas comunitários</title><link rel="stylesheet" th:href="@{/css/residencias.css}"></head>
 <body class="gestao"><header class="cabecalho"><a th:href="@{/representante}">Alertas comunitários</a>
-<nav aria-label="Navegação do representante"><a th:href="@{/areas}">Áreas de risco</a><a th:href="@{/residencias}">Residências</a><a th:href="@{/auditoria}">Auditoria</a>
+<nav aria-label="Navegação do representante"><a th:href="@{/areas}">Áreas de risco</a><a th:href="@{/residencias}">Residências</a><a th:href="@{/moradores}">Moradores</a><a th:href="@{/auditoria}">Auditoria</a>
 <form th:action="@{/sair}" method="post"><button class="secundario" type="submit">Sair</button></form></nav></header><main>
 <h1 th:text="${id == null ? 'Cadastrar residência' : 'Editar residência'}"></h1>
 <p>Preencha o endereço e selecione a área de risco correspondente.</p>

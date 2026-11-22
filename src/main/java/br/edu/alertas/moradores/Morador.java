@@ -2,6 +2,7 @@ package br.edu.alertas.moradores;
 
 import br.edu.alertas.residencias.Residencia;
 import jakarta.persistence.*;
+import java.time.Instant;
 
 @Entity
 @Table(name = "moradores")
@@ -25,6 +26,12 @@ public class Morador {
     private PreferenciaAlertas preferenciaAlertas;
     @Column(nullable = false)
     private boolean ativa = true;
+    @Column(name = "senha_hash", columnDefinition = "text")
+    private String senhaHash;
+    @Column(name = "senha_temporaria_expira_em")
+    private Instant senhaTemporariaExpiraEm;
+    @Column(name = "credenciais_pendentes", nullable = false)
+    private boolean credenciaisPendentes = true;
 
     protected Morador() { }
 
@@ -50,7 +57,16 @@ public class Morador {
         this.residencia = residencia;
     }
 
-    private static boolean cpfValido(String cpf) {
+    // Cada emissão substitui a anterior; a original nunca fica legível (RS002).
+    void emitirSenhaTemporaria(String hash, Instant expiraEm) {
+        senhaHash = hash;
+        senhaTemporariaExpiraEm = expiraEm;
+        credenciaisPendentes = true;
+    }
+
+    void registrarEnvio(boolean aceito) { credenciaisPendentes = !aceito; }
+
+    static boolean cpfValido(String cpf) {
         if (cpf == null || !cpf.matches("[0-9]{11}") || cpf.chars().distinct().count() == 1) { return false; }
         for (int tamanho = 9; tamanho <= 10; tamanho++) {
             int soma = 0;
@@ -73,4 +89,6 @@ public class Morador {
     public CanalCredenciais getCanalCredenciais() { return canalCredenciais; }
     public PreferenciaAlertas getPreferenciaAlertas() { return preferenciaAlertas; }
     public boolean isAtiva() { return ativa; }
+    public boolean isCredenciaisPendentes() { return credenciaisPendentes; }
+    public Instant getSenhaTemporariaExpiraEm() { return senhaTemporariaExpiraEm; }
 }
