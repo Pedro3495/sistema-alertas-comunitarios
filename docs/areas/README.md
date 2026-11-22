@@ -1,5 +1,7 @@
 # Base de áreas de risco — tarefa #14
 
+Este texto registra o recorte inicial. A entrega seguinte acrescenta [gestão web, autorização, auditoria e vínculo com residências](../residencias/README.md). As limitações abaixo são as da base original.
+
 Primeiro recorte do RF003: domínio, cadastro, alteração e pesquisa com persistência. O requisito completo permanece pendente de interface, autorização, auditoria e exclusão condicionada aos vínculos reais de residências e ocorrências.
 
 ## Como o código se organiza
