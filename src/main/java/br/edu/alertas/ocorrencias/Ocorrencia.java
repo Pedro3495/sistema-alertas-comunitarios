@@ -1,6 +1,7 @@
 package br.edu.alertas.ocorrencias;
 
 import br.edu.alertas.areas.AreaRisco;
+import br.edu.alertas.moradores.Morador;
 import br.edu.alertas.representantes.Representante;
 import jakarta.persistence.*;
 import java.time.Instant;
@@ -22,13 +23,15 @@ public class Ocorrencia {
     @Column(nullable = false, columnDefinition = "text") private String localizacao;
     @Column(nullable = false, columnDefinition = "text") private String situacao = "EM_VERIFICACAO";
     @ManyToOne(optional = false) @JoinColumn(name = "area_id", nullable = false) private AreaRisco area;
-    @ManyToOne(optional = false) @JoinColumn(name = "representante_id", nullable = false) private Representante representante;
+    @ManyToOne @JoinColumn(name = "representante_id") private Representante representante;
+    @ManyToOne @JoinColumn(name = "morador_id") private Morador morador;
     @OneToMany(mappedBy = "ocorrencia", cascade = CascadeType.PERSIST, fetch = FetchType.EAGER)
     @OrderBy("ordem") private List<FotoOcorrencia> fotos = new ArrayList<>();
 
     protected Ocorrencia() { }
 
-    Ocorrencia(DadosOcorrencia dados, AreaRisco area, Representante representante, Instant agora) {
+    // Exatamente um autor: representante ou morador (V13).
+    Ocorrencia(DadosOcorrencia dados, AreaRisco area, Representante representante, Morador morador, Instant agora) {
         if (dados.envioId() == null) { throw new ErroOcorrencia("envioId", "Reabra o formulário para preparar o envio."); }
         if (dados.tipo() == null) { throw new ErroOcorrencia("tipo", "Selecione o tipo de ocorrência."); }
         if (dados.tipo() == TipoOcorrencia.OUTROS) { exigir(dados.especificacaoOutros(), "especificacaoOutros", "Especifique o tipo Outros."); }
@@ -47,6 +50,7 @@ public class Ocorrencia {
         localizacao = dados.localizacao();
         this.area = area;
         this.representante = representante;
+        this.morador = morador;
         for (int i = 0; i < dados.fotos().size(); i++) { fotos.add(new FotoOcorrencia(this, i + 1, dados.fotos().get(i))); }
     }
 
@@ -64,7 +68,8 @@ public class Ocorrencia {
     public String getSituacao() { return "Em verificação"; }
     public Long getAreaId() { return area.getId(); }
     public String getAreaNome() { return area.getNome(); }
-    public Long getRepresentanteId() { return representante.getId(); }
-    public String getRepresentanteNome() { return representante.getNomeCompleto(); }
+    public Long getRepresentanteId() { return representante == null ? null : representante.getId(); }
+    public String getRepresentanteNome() { return representante == null ? null : representante.getNomeCompleto(); }
+    public Long getMoradorId() { return morador == null ? null : morador.getId(); }
     public List<FotoOcorrencia> getFotos() { return List.copyOf(fotos); }
 }

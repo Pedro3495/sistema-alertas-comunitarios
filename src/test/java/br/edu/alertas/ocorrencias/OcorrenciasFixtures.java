@@ -1,6 +1,7 @@
 package br.edu.alertas.ocorrencias;
 
 import br.edu.alertas.administracao.AdministradorService;
+import br.edu.alertas.moradores.*;
 import br.edu.alertas.representantes.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
@@ -14,6 +15,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import static org.assertj.core.api.Assertions.*;
 
 abstract class OcorrenciasFixtures {
@@ -25,6 +27,10 @@ abstract class OcorrenciasFixtures {
     @Autowired AutenticacaoRepresentanteService acesso;
     @Autowired AdministradorService administradores;
     @Autowired JdbcTemplate jdbc;
+    @Autowired AutenticacaoMoradorService acessoMorador;
+    @Autowired PasswordEncoder encoder;
+    final List<Long> residencias = new ArrayList<>();
+    final List<Long> areasExtras = new ArrayList<>();
     final List<Long> contas = new ArrayList<>();
     Representante representante;
     AcessoRepresentante ator;
@@ -43,6 +49,15 @@ abstract class OcorrenciasFixtures {
     @AfterEach
     void limparSomenteFixturesProprias() {
         SecurityContextHolder.clearContext();
+        for (long residencia : residencias) {
+            String autores = "SELECT id FROM moradores WHERE residencia_id = " + residencia;
+            jdbc.update("DELETE FROM fotos_ocorrencia WHERE ocorrencia_id IN (SELECT id FROM ocorrencias WHERE morador_id IN (" + autores + "))");
+            jdbc.update("DELETE FROM ocorrencias WHERE morador_id IN (" + autores + ")");
+            jdbc.update("DELETE FROM registros_auditoria WHERE responsavel_tipo = 'MORADOR' AND responsavel_id IN (" + autores + ")");
+        }
+        for (long residencia : residencias) jdbc.update("DELETE FROM moradores WHERE residencia_id = ?", residencia);
+        for (long residencia : residencias) jdbc.update("DELETE FROM residencias WHERE id = ?", residencia);
+        for (long extra : areasExtras) jdbc.update("DELETE FROM areas_risco WHERE id = ?", extra);
         for (long id : contas) {
             jdbc.update("DELETE FROM fotos_ocorrencia WHERE ocorrencia_id IN (SELECT id FROM ocorrencias WHERE representante_id = ?)", id);
             jdbc.update("DELETE FROM ocorrencias WHERE representante_id = ?", id);
@@ -59,6 +74,37 @@ abstract class OcorrenciasFixtures {
         contas.add(conta.getId());
         if (definitiva) acesso.trocarSenha(acesso.autenticar(conta.getLogin(), TEMPORARIA).orElseThrow(), DEFINITIVA);
         return conta;
+    }
+
+    /** Morador fictício com senha definitiva, residência na área indicada; retorna o CPF. */
+    String novoMorador(long areaResidencia) {
+        long residencia = jdbc.queryForObject("INSERT INTO residencias(rua_logradouro, numero, bairro, municipio, area_id) VALUES ('Rua Fictícia', '1', 'Bairro', 'Município', ?) RETURNING id", Long.class, areaResidencia);
+        residencias.add(residencia);
+        var aleatorio = new Random();
+        String cpf = String.format("%011d", Math.floorMod(aleatorio.nextLong(), 100_000_000_000L));
+        jdbc.update("""
+                INSERT INTO moradores(nome_completo, cpf, celular, residencia_id, canal_credenciais, preferencia_alertas, ativa,
+                    senha_hash, senha_temporaria_expira_em, credenciais_pendentes, troca_senha_obrigatoria)
+                VALUES ('Morador sintético RF006', ?, ?, ?, 'SMS', 'SMS', true, ?, now(), false, false)""",
+                cpf, String.format("%011d", Math.floorMod(aleatorio.nextLong(), 100_000_000_000L)), residencia, encoder.encode(DEFINITIVA));
+        return cpf;
+    }
+
+    AcessoMorador entrarComoMorador(String cpf) {
+        var acesso = acessoMorador.autenticar(cpf, DEFINITIVA).orElseThrow();
+        autenticar(acesso, "MORADOR");
+        return acesso;
+    }
+
+    long novaArea() {
+        long id = jdbc.queryForObject("INSERT INTO areas_risco(nome, descricao_localizacao_limites) VALUES (?, 'Limites fictícios') RETURNING id",
+                Long.class, "Outra área RF006 " + UUID.randomUUID());
+        areasExtras.add(id);
+        return id;
+    }
+
+    List<String> acoesDoMorador(long id) {
+        return jdbc.queryForList("SELECT acao FROM registros_auditoria WHERE responsavel_tipo = 'MORADOR' AND responsavel_id = ? ORDER BY id", String.class, id);
     }
 
     Object administrador() {

@@ -338,7 +338,7 @@
           throw new Error('O envio não foi confirmado. Revise e tente novamente com este rascunho.');
         }
         if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(retorno.protocolo)
-            || retorno.detalheUrl !== '/ocorrencias/' + retorno.protocolo) {
+            || retorno.detalheUrl !== new URL(form.action).pathname + '/' + retorno.protocolo) {
           throw new Error('A confirmação não pôde ser apresentada. Tente novamente com este rascunho para recuperar o protocolo.');
         }
         window.location.assign(retorno.detalheUrl);

@@ -17,8 +17,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+// Representante: /ocorrencias (qualquer área). Morador: /morador/ocorrencias (área da residência, RF006 regra 4).
 @Controller
-@RequestMapping("/ocorrencias")
 public class OcorrenciaController {
     private final OcorrenciaService service;
     private final AreaRiscoRepository areas;
@@ -27,7 +27,7 @@ public class OcorrenciaController {
         this.service = service; this.areas = areas; this.usuarios = usuarios;
     }
 
-    @GetMapping("/novo")
+    @GetMapping("/ocorrencias/novo")
     String novo(Model model) {
         var ator = usuarios.exigirRepresentante();
         model.addAttribute("areas", areas.findAll(Sort.by("id")));
@@ -35,7 +35,16 @@ public class OcorrenciaController {
         return "ocorrencias/formulario";
     }
 
-    @PostMapping
+    @GetMapping("/morador/ocorrencias/novo")
+    String novoDoMorador(Model model) {
+        var morador = service.moradorAtual();
+        model.addAttribute("morador", true);
+        model.addAttribute("areas", List.of(Map.of("id", morador.getAreaId(), "nome", morador.getAreaNome())));
+        model.addAttribute("rascunhoChave", "MORADOR:" + morador.getId());
+        return "ocorrencias/formulario";
+    }
+
+    @PostMapping("/ocorrencias")
     @ResponseBody
     Map<String, String> registrar(@RequestParam(defaultValue = "") String envioId,
             @RequestParam(defaultValue = "") String tipo,
@@ -45,15 +54,35 @@ public class OcorrenciaController {
             @RequestParam(defaultValue = "") String areaId,
             @RequestParam(required = false) List<MultipartFile> fotos) {
         usuarios.exigirRepresentante();
+        Long area;
+        try { area = Long.valueOf(areaId); }
+        catch (NumberFormatException exception) { throw new ErroOcorrencia("areaId", "Selecione uma área de risco cadastrada."); }
+        var salva = service.registrar(dados(envioId, tipo, especificacaoOutros, descricao, localizacao, area, fotos));
+        return Map.of("protocolo", salva.getProtocolo().toString(), "detalheUrl", "/ocorrencias/" + salva.getProtocolo());
+    }
+
+    // Nenhum campo de área é lido: o servidor usa a residência atual do morador.
+    @PostMapping("/morador/ocorrencias")
+    @ResponseBody
+    Map<String, String> registrarDoMorador(@RequestParam(defaultValue = "") String envioId,
+            @RequestParam(defaultValue = "") String tipo,
+            @RequestParam(defaultValue = "") String especificacaoOutros,
+            @RequestParam(defaultValue = "") String descricao,
+            @RequestParam(defaultValue = "") String localizacao,
+            @RequestParam(required = false) List<MultipartFile> fotos) {
+        usuarios.exigirMorador();
+        var salva = service.registrarPorMorador(dados(envioId, tipo, especificacaoOutros, descricao, localizacao, null, fotos));
+        return Map.of("protocolo", salva.getProtocolo().toString(), "detalheUrl", "/morador/ocorrencias/" + salva.getProtocolo());
+    }
+
+    private static DadosOcorrencia dados(String envioId, String tipo, String especificacaoOutros, String descricao,
+            String localizacao, Long area, List<MultipartFile> fotos) {
         UUID chave;
         try { chave = UUID.fromString(envioId); }
         catch (IllegalArgumentException exception) { throw new ErroOcorrencia("envioId", "Reabra o formulário para preparar o envio."); }
         TipoOcorrencia tipoEscolhido;
         try { tipoEscolhido = TipoOcorrencia.valueOf(tipo); }
         catch (IllegalArgumentException exception) { throw new ErroOcorrencia("tipo", "Selecione o tipo de ocorrência."); }
-        Long area;
-        try { area = Long.valueOf(areaId); }
-        catch (NumberFormatException exception) { throw new ErroOcorrencia("areaId", "Selecione uma área de risco cadastrada."); }
         List<byte[]> imagens = new ArrayList<>();
         if (fotos != null) {
             if (fotos.size() > 4) { throw new ErroOcorrencia("fotos", "Escolha de uma a quatro fotos como evidências."); }
@@ -63,35 +92,52 @@ public class OcorrenciaController {
                 catch (IOException exception) { throw new ErroOcorrencia("fotos", "Não foi possível ler a foto. Escolha outra e tente novamente."); }
             }
         }
-        var salva = service.registrar(new DadosOcorrencia(chave, tipoEscolhido, especificacaoOutros, descricao,
-                localizacao, area, imagens));
-        return Map.of("protocolo", salva.getProtocolo().toString(), "detalheUrl", "/ocorrencias/" + salva.getProtocolo());
+        return new DadosOcorrencia(chave, tipoEscolhido, especificacaoOutros, descricao, localizacao, area, imagens);
     }
 
-    @GetMapping("/{protocolo}")
+    @GetMapping("/ocorrencias/{protocolo}")
     String detalhe(@PathVariable UUID protocolo, Model model) {
         var ocorrencia = buscar(protocolo);
         model.addAttribute("ocorrencia", ocorrencia);
         var ator = usuarios.exigirRepresentante();
-        if (ocorrencia.getRepresentanteId().equals(ator.id())) {
+        if (ator.id().equals(ocorrencia.getRepresentanteId())) {
             model.addAttribute("rascunhoChave", "REPRESENTANTE:" + ator.id());
         }
         return "ocorrencias/detalhe";
     }
 
-    @GetMapping("/{protocolo}/fotos/{ordem}")
+    @GetMapping("/morador/ocorrencias/{protocolo}")
+    String detalheDoMorador(@PathVariable UUID protocolo, Model model) {
+        Ocorrencia ocorrencia;
+        try { ocorrencia = service.buscarDoMorador(protocolo); }
+        catch (EntityNotFoundException exception) { throw new ResponseStatusException(HttpStatus.NOT_FOUND); }
+        model.addAttribute("morador", true);
+        model.addAttribute("ocorrencia", ocorrencia);
+        model.addAttribute("rascunhoChave", "MORADOR:" + ocorrencia.getMoradorId());
+        return "ocorrencias/detalhe";
+    }
+
+    @GetMapping("/ocorrencias/{protocolo}/fotos/{ordem}")
     ResponseEntity<byte[]> foto(@PathVariable UUID protocolo, @PathVariable int ordem) {
-        try {
-            var foto = service.foto(protocolo, ordem);
-            boolean heif = foto.getTipoMidia().equals("image/heic") || foto.getTipoMidia().equals("image/heif");
-            String extensao = heif ? "heic" : foto.getTipoMidia().equals("image/png") ? "png" : "jpg";
-            var disposition = (heif ? ContentDisposition.attachment() : ContentDisposition.inline())
-                    .filename("foto-" + ordem + "." + extensao).build();
-            return ResponseEntity.ok().cacheControl(CacheControl.noStore())
-                    .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
-                    .header("X-Content-Type-Options", "nosniff")
-                    .contentType(MediaType.parseMediaType(foto.getTipoMidia())).body(foto.getConteudo());
-        } catch (EntityNotFoundException exception) { throw new ResponseStatusException(HttpStatus.NOT_FOUND); }
+        try { return foto(service.foto(protocolo, ordem)); }
+        catch (EntityNotFoundException exception) { throw new ResponseStatusException(HttpStatus.NOT_FOUND); }
+    }
+
+    @GetMapping("/morador/ocorrencias/{protocolo}/fotos/{ordem}")
+    ResponseEntity<byte[]> fotoDoMorador(@PathVariable UUID protocolo, @PathVariable int ordem) {
+        try { return foto(service.fotoDoMorador(protocolo, ordem)); }
+        catch (EntityNotFoundException exception) { throw new ResponseStatusException(HttpStatus.NOT_FOUND); }
+    }
+
+    private static ResponseEntity<byte[]> foto(FotoOcorrencia foto) {
+        boolean heif = foto.getTipoMidia().equals("image/heic") || foto.getTipoMidia().equals("image/heif");
+        String extensao = heif ? "heic" : foto.getTipoMidia().equals("image/png") ? "png" : "jpg";
+        var disposition = (heif ? ContentDisposition.attachment() : ContentDisposition.inline())
+                .filename("foto-" + foto.getOrdem() + "." + extensao).build();
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .header("X-Content-Type-Options", "nosniff")
+                .contentType(MediaType.parseMediaType(foto.getTipoMidia())).body(foto.getConteudo());
     }
 
     @ExceptionHandler(ErroOcorrencia.class)
