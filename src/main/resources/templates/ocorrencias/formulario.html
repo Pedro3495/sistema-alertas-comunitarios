@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Registrar ocorrência · Alertas comunitários</title>
+  <link rel="stylesheet" th:href="@{/css/ocorrencias.css}">
+  <script defer th:src="@{/js/ocorrencias.js}"></script>
+</head>
+<body class="gestao">
+<header class="cabecalho">
+  <a th:href="@{/representante}">Alertas comunitários</a>
+  <nav aria-label="Navegação do representante">
+    <a th:href="@{/areas}">Áreas de risco</a>
+    <a th:href="@{/residencias}">Residências</a>
+    <form th:action="@{/sair}" method="post"><button class="secundario" type="submit">Sair</button></form>
+  </nav>
+</header>
+<main>
+  <h1>Registrar ocorrência</h1>
+  <p class="introducao">Descreva o que aconteceu e indique a área de risco. Inclua fotos do local.</p>
+  <noscript><p class="mensagem erro">Ative o JavaScript do navegador para salvar o rascunho e enviar as fotos.</p></noscript>
+  <div class="mensagem" th:if="${#lists.isEmpty(areas)}">
+    <p>Cadastre uma área de risco antes de registrar a ocorrência.</p>
+    <a th:href="@{/areas/novo}">Cadastrar área de risco</a>
+  </div>
+  <p class="mensagem" id="rascunho-status" role="status" aria-live="polite">Preparando o rascunho neste dispositivo…</p>
+  <p class="mensagem erro" id="envio-erro" role="alert" hidden tabindex="-1"></p>
+  <form id="ocorrencia-formulario" class="formulario" th:action="@{/ocorrencias}" method="post"
+        enctype="multipart/form-data" novalidate th:attr="data-rascunho-chave=${rascunhoChave}">
+    <input type="hidden" name="envioId" id="envioId">
+    <fieldset id="dados-ocorrencia" disabled>
+      <legend class="somente-leitor">Dados da ocorrência</legend>
+      <div class="campo">
+        <label for="tipo">Tipo da ocorrência</label>
+        <select id="tipo" name="tipo" required aria-describedby="erro-tipo">
+          <option value="">Selecione o tipo</option>
+          <option value="DESASTRE">Desastre</option>
+          <option value="OBRA">Obra</option>
+          <option value="BARREIRA_CONTENCAO">Situação relacionada a barreira de contenção</option>
+          <option value="OUTROS">Outros</option>
+        </select>
+        <p id="erro-tipo" class="erro-campo" role="alert"></p>
+      </div>
+      <div class="campo" id="campo-outros" hidden>
+        <label for="especificacaoOutros">Qual é o outro tipo?</label>
+        <input id="especificacaoOutros" name="especificacaoOutros" aria-describedby="orientacao-outros erro-especificacaoOutros">
+        <p class="orientacao" id="orientacao-outros">Especifique o tipo aqui e descreva o ocorrido no campo abaixo.</p>
+        <p id="erro-especificacaoOutros" class="erro-campo" role="alert"></p>
+      </div>
+      <div class="campo">
+        <label for="descricao">Descrição do ocorrido</label>
+        <textarea id="descricao" name="descricao" required rows="5" aria-describedby="erro-descricao"></textarea>
+        <p id="erro-descricao" class="erro-campo" role="alert"></p>
+      </div>
+      <div class="campo">
+        <label for="localizacao">Localização do fato</label>
+        <input id="localizacao" name="localizacao" required aria-describedby="orientacao-localizacao erro-localizacao">
+        <p class="orientacao" id="orientacao-localizacao">Digite o endereço ou um ponto de referência do local.</p>
+        <p id="erro-localizacao" class="erro-campo" role="alert"></p>
+      </div>
+      <div class="campo">
+        <label for="areaId">Área de risco</label>
+        <select id="areaId" name="areaId" required aria-describedby="erro-areaId">
+          <option value="">Selecione uma área cadastrada</option>
+          <option th:each="area : ${areas}" th:value="${area.id}" th:text="${area.nome}"></option>
+        </select>
+        <p id="erro-areaId" class="erro-campo" role="alert"></p>
+      </div>
+      <div class="campo">
+        <label for="fotos">Fotos do ocorrido</label>
+        <input id="fotos" name="fotos" type="file" multiple accept=".jpg,.jpeg,.png,.heic,.heif,image/jpeg,image/png,image/heic,image/heif" aria-describedby="orientacao-fotos erro-fotos fotos-selecionadas">
+        <p class="orientacao" id="orientacao-fotos">Selecione de uma a quatro fotos JPG, JPEG, PNG, HEIC ou HEIF. Fotos acima de 5 MB serão reduzidas. Uma nova seleção substitui as fotos deste rascunho.</p>
+        <ul id="fotos-selecionadas" class="fotos-selecionadas" aria-label="Fotos no rascunho"></ul>
+        <p id="erro-fotos" class="erro-campo" role="alert"></p>
+      </div>
+      <label class="confirmacao" for="revisao"><input id="revisao" type="checkbox" aria-describedby="erro-revisao">Revisei os dados e as fotos e quero enviar esta ocorrência.</label>
+      <p id="erro-revisao" class="erro-campo" role="alert"></p>
+      <button id="enviar-ocorrencia" type="submit" th:disabled="${#lists.isEmpty(areas)}">Registrar ocorrência</button>
+    </fieldset>
+  </form>
+  <p class="orientacao">O rascunho fica neste navegador, separado por conta. Após recuperar um rascunho, revise e envie manualmente. A ocorrência enviada e suas fotos serão preservadas.</p>
+  <p class="voltar"><a th:href="@{/representante}">Voltar para início</a></p>
+</main>
+</body>
+</html>
