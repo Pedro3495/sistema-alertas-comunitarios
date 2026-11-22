@@ -50,8 +50,16 @@ public class Morador {
             throw new IllegalArgumentException("Escolha separadamente o canal de credenciais e a preferência de alertas.");
         }
         alterar(dados.nomeCompleto(), dados.cpf(), dados.celular(), residencia);
-        canalCredenciais = dados.canalCredenciais();
-        preferenciaAlertas = dados.preferenciaAlertas();
+        alterarPreferencias(dados.canalCredenciais(), dados.preferenciaAlertas());
+    }
+
+    // RF001 regra 6: o morador troca só as escolhas de canais; o telefone cadastrado permanece.
+    void alterarPreferencias(CanalCredenciais canal, PreferenciaAlertas preferencia) {
+        if (canal == null || preferencia == null) {
+            throw new IllegalArgumentException("Escolha separadamente o canal de credenciais e a preferência de alertas.");
+        }
+        canalCredenciais = canal;
+        preferenciaAlertas = preferencia;
     }
 
     void alterar(String nome, String cpf, String celular, Residencia residencia) {
