@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * Simulação do provedor de SMS/WhatsApp: não faz chamada de rede, não grava nem registra a senha.
+ * Simulação do provedor de SMS/WhatsApp: não faz chamada de rede, não grava nem registra a senha nem o código.
  * Decisão de Pedro (22/11/2026): nenhum provedor real nesta entrega. Não conta como envio real.
  */
 @Component
@@ -17,6 +17,11 @@ class EnvioCredenciaisSimulado implements EnvioCredenciais {
 
     @Override
     public boolean enviarSenhaTemporaria(CanalCredenciais canal, String celular, String senhaTemporaria) {
+        return !simularFalha;
+    }
+
+    @Override
+    public boolean enviarCodigoRecuperacao(CanalCredenciais canal, String celular, String codigo) {
         return !simularFalha;
     }
 }

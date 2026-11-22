@@ -54,7 +54,7 @@ public class SegurancaConfig {
                 .authenticationManager(new org.springframework.security.authentication.ProviderManager(provider))
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
-                        .requestMatchers("/morador/entrar").permitAll()
+                        .requestMatchers("/morador/entrar", "/morador/recuperar", "/morador/recuperar/codigo").permitAll()
                         .requestMatchers("/morador/trocar-senha").hasAuthority("MORADOR_TROCAR_SENHA")
                         .requestMatchers("/morador").hasAuthority("MORADOR")
                         .anyRequest().denyAll())
