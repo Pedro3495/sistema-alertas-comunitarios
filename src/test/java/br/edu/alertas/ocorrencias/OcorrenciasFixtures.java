@@ -49,6 +49,10 @@ abstract class OcorrenciasFixtures {
     @AfterEach
     void limparSomenteFixturesProprias() {
         SecurityContextHolder.clearContext();
+        for (long id : contas) { // RF010: comunicados só são emitidos pelos representantes da fixture
+            jdbc.update("DELETE FROM destinatarios_comunicado WHERE comunicado_id IN (SELECT id FROM comunicados_ocorrencia WHERE representante_id = ?)", id);
+            jdbc.update("DELETE FROM comunicados_ocorrencia WHERE representante_id = ?", id);
+        }
         for (long residencia : residencias) {
             String autores = "SELECT id FROM moradores WHERE residencia_id = " + residencia;
             jdbc.update("DELETE FROM verificacoes_ocorrencia WHERE ocorrencia_id IN (SELECT id FROM ocorrencias WHERE morador_id IN (" + autores + "))");
@@ -96,6 +100,10 @@ abstract class OcorrenciasFixtures {
         var acesso = acessoMorador.autenticar(cpf, DEFINITIVA).orElseThrow();
         autenticar(acesso, "MORADOR");
         return acesso;
+    }
+
+    long idDoMorador(String cpf) {
+        return jdbc.queryForObject("SELECT id FROM moradores WHERE cpf = ?", Long.class, cpf);
     }
 
     long novaArea() {

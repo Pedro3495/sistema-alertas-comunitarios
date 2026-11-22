@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Alertas · Alertas comunitários</title>
+  <link rel="stylesheet" th:href="@{/css/ocorrencias.css}">
+</head>
+<body class="gestao">
+<header class="cabecalho"><a th:href="@{/morador}">Alertas comunitários</a>
+  <nav aria-label="Navegação do morador"><a th:href="@{/morador/ocorrencias}">Ocorrências</a><a th:href="@{/morador/ocorrencias/novo}">Registrar ocorrência</a>
+    <form th:action="@{/morador/sair}" method="post"><button class="secundario" type="submit">Sair</button></form>
+  </nav>
+</header>
+<main>
+  <h1>Alertas recebidos</h1>
+  <p th:if="${#lists.isEmpty(alertas)}">Nenhum alerta para você.</p>
+  <ul th:unless="${#lists.isEmpty(alertas)}" class="verificacoes">
+    <li th:each="a : ${alertas}">
+      <strong th:text="${a.tipo.rotulo + ': ' + a.titulo}"></strong> · <time th:datetime="${a.emitidoEm}" th:text="${a.emitidoEm}"></time>
+      <p class="descricao" th:text="${a.mensagem}"></p>
+      <p class="descricao" th:if="${a.orientacoes}" th:text="${'Orientações: ' + a.orientacoes}"></p>
+      <p th:text="${'Protocolo da ocorrência: ' + a.protocolo}"></p>
+    </li>
+  </ul>
+  <p class="voltar"><a th:href="@{/morador}">Voltar para início</a></p>
+</main>
+</body>
+</html>

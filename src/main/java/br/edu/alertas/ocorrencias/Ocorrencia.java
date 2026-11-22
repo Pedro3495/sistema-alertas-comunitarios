@@ -80,6 +80,7 @@ public class Ocorrencia {
     public String getLocalizacao() { return localizacao; }
     public String getSituacao() { return situacao.getRotulo(); }
     public SituacaoOcorrencia getSituacaoAtual() { return situacao; }
+    AreaRisco getArea() { return area; }
     public Long getAreaId() { return area.getId(); }
     public String getAreaNome() { return area.getNome(); }
     public Long getRepresentanteId() { return representante == null ? null : representante.getId(); }
