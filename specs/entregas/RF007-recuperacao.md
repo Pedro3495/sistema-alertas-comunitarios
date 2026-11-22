@@ -48,11 +48,11 @@ Branch `Pedro3495/rf007-limite-auditoria`, base `main`.
 | Recusa genérica, sem envio, sem revelar se a conta existe | Acima do limite retorna `SOLICITADO`, a mesma resposta do telefone desconhecido; nada é enviado e o código vigente não é trocado. A tela do código informa o limite para todos. |
 | Auditar pedidos, recusas e redefinições concluídas, sem código nem senha | Reaproveita `registros_auditoria`/`RegistroAuditoria`: novo `AuditoriaService.registrarMorador(acao, moradorId)` grava `SOLICITAR_CODIGO_RECUPERACAO`, `RECUSAR_CODIGO_RECUPERACAO_LIMITE` e `REDEFINIR_SENHA_RECUPERACAO` com responsável `MORADOR #id`. Telefone desconhecido não gera registro (não há responsável). |
 
-Persistência: `V14__auditoria_recuperacao_morador.sql` só amplia o CHECK de `responsavel_tipo` para aceitar `MORADOR`; V1–V13 preservadas; `database/schema.sql` ajustado na mesma restrição. A tela de auditoria mostra esses registros como `MORADOR #id`; o filtro por responsável continua listando apenas administradores e representantes.
+Persistência: sem migração nova. `V13__ocorrencias_moradores.sql` (RF006, já em `main`) ampliou o CHECK de `responsavel_tipo` para `MORADOR`, exatamente o que este recorte precisava; uma V13/V14 própria foi descartada por ser idêntica. A tela de auditoria mostra esses registros como `MORADOR #id` e o filtro já lista moradores.
 
 Teste: `tresPedidosPorHoraEmJanelaMovelComRecusaIgualAoSucessoEAuditoriaSemSegredo` (relógio controlado: pedidos em 0, 20 e 40 min passam; o 4º em 59 min recebe a mesma resposta de telefone desconhecido e nada é enviado; aos 60 min libera e redefine; registros na ordem esperada e sem código ou senha).
 
-Verificação: `./scripts/verificar.sh` com JDK 21 em PostgreSQL isolado (`alertas-rf006-test`, 55440), base nova exclusiva `alertas_rf007lim_1795379398`: **265 testes, 0 falhas, 0 erros**, `BUILD SUCCESS`. Executado com `SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=3` porque o contêiner compartilhado recusou conexões ("too many clients") em execuções anteriores com o pool padrão.
+Verificação: `./scripts/verificar.sh` com JDK 21 em PostgreSQL isolado (`alertas-rf006-test`, 55440), base nova exclusiva `alertas_rf007lim_1795379721`, após integrar `main` (com o PR #32): **272 testes, 0 falhas, 0 erros**, `BUILD SUCCESS`; Flyway em V1–V13. A primeira execução no CI acusou registros `MORADOR` deixados por `MoradoresHttpTests` (quebravam um teste que espera auditoria vazia); a limpeza agora os remove. Executado com `SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=3` porque o contêiner compartilhado recusou conexões ("too many clients") em execuções anteriores com o pool padrão.
 
 ## Evidências locais — 22/11/2026
 
