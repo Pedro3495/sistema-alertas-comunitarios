@@ -36,3 +36,7 @@ A fachada `GestaoRepresentantesService` aplica autorização e transação do ca
 ## Base de moradores
 
 `Morador` mantém campos privados e valida nome, verificadores do CPF, celular e residência antes de aplicar uma correção. Enums distintos impedem confundir o canal único de credenciais com a preferência de alertas. `MoradorService` coordena autorização, transação e auditoria; a FK e as restrições únicas protegem vínculos e identidade também nas disputas concorrentes. Não há herança artificial nem envio de credenciais nesta base; `MoradorTests` e `MoradorServiceTests` verificam essas regras.
+
+## Registro de ocorrências por representantes
+
+`Ocorrencia` valida o registro e compõe de uma a quatro `FotoOcorrencia`; mantém campos privados e não oferece remoção/alteração das evidências. `FotoOcorrencia` copia os bytes na entrada e na saída. `OcorrenciaService` reúne autorização, bloqueio/revalidação da sessão, persistência e auditoria; o chamador pede um registro sem controlar protocolo, instante ou responsável. `ErroOcorrencia` especializa `IllegalArgumentException` para informar o campo inválido ao HTTP. Isso demonstra encapsulamento, composição e abstração; não é uma hierarquia de entidades criada para preencher o critério de herança.

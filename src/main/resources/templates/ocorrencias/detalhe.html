@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ocorrência registrada · Alertas comunitários</title>
+  <link rel="stylesheet" th:href="@{/css/ocorrencias.css}">
+  <script defer th:src="@{/js/ocorrencias.js}"></script>
+</head>
+<body class="gestao">
+<header class="cabecalho"><a th:href="@{/representante}">Alertas comunitários</a>
+  <nav aria-label="Navegação do representante"><a th:href="@{/ocorrencias/novo}">Registrar ocorrência</a>
+    <form th:action="@{/sair}" method="post"><button class="secundario" type="submit">Sair</button></form>
+  </nav>
+</header>
+<main id="ocorrencia-detalhe" th:attr="data-rascunho-chave=${rascunhoChave},data-envio-id=${rascunhoChave != null ? ocorrencia.envioId : null}">
+  <h1>Ocorrência registrada</h1>
+  <p>Guarde o protocolo para identificar este registro.</p>
+  <div class="mensagem protocolo"><h2>Protocolo</h2><p id="protocolo" th:text="${ocorrencia.protocolo}"></p></div>
+  <p id="rascunho-status" role="status" aria-live="polite"></p>
+  <dl class="dados-ocorrencia">
+    <div><dt>Situação</dt><dd th:text="${ocorrencia.situacao}"></dd></div>
+    <div><dt>Data e hora do registro</dt><dd><time id="horario-registro" th:datetime="${ocorrencia.registradaEm}" th:text="${ocorrencia.registradaEm}"></time></dd></div>
+    <div><dt>Tipo</dt><dd th:text="${ocorrencia.tipo.rotulo}"></dd></div>
+    <div th:if="${ocorrencia.tipo.name() == 'OUTROS'}"><dt>Especificação de Outros</dt><dd class="descricao" th:text="${ocorrencia.especificacaoOutros}"></dd></div>
+    <div><dt>Descrição do ocorrido</dt><dd class="descricao" th:text="${ocorrencia.descricao}"></dd></div>
+    <div><dt>Localização do fato</dt><dd class="descricao" th:text="${ocorrencia.localizacao}"></dd></div>
+    <div><dt>Área de risco</dt><dd th:text="${ocorrencia.areaNome}"></dd></div>
+    <div><dt>Representante responsável</dt><dd th:text="${ocorrencia.representanteNome}"></dd></div>
+  </dl>
+  <section aria-labelledby="titulo-evidencias">
+    <h2 id="titulo-evidencias">Fotos do ocorrido</h2>
+    <ul class="evidencias">
+      <li th:each="foto : ${ocorrencia.fotos}">
+        <a th:href="@{/ocorrencias/{protocolo}/fotos/{ordem}(protocolo=${ocorrencia.protocolo},ordem=${foto.ordem})}">
+          <img th:if="${foto.tipoMidia == 'image/jpeg' or foto.tipoMidia == 'image/png'}"
+               th:src="@{/ocorrencias/{protocolo}/fotos/{ordem}(protocolo=${ocorrencia.protocolo},ordem=${foto.ordem})}"
+               th:alt="${'Foto do ocorrido ' + foto.ordem}" loading="lazy">
+          <span th:text="${'Abrir foto ' + foto.ordem}"></span>
+        </a>
+        <p class="orientacao" th:unless="${foto.tipoMidia == 'image/jpeg' or foto.tipoMidia == 'image/png'}">Foto HEIC/HEIF: abra o original em um aplicativo compatível.</p>
+      </li>
+    </ul>
+  </section>
+  <p class="orientacao">O registro e suas evidências são preservados. Não é possível excluir a ocorrência nem remover ou substituir as fotos enviadas.</p>
+  <p class="voltar"><a th:href="@{/ocorrencias/novo}">Registrar outra ocorrência</a></p>
+  <p class="voltar"><a th:href="@{/representante}">Voltar para início</a></p>
+</main>
+</body>
+</html>
