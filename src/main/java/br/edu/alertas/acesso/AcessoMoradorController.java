@@ -69,13 +69,10 @@ public class AcessoMoradorController {
     }
 
     @PostMapping("/recuperar")
-    String enviarCodigo(@RequestParam(defaultValue = "") String celular, HttpServletRequest request, Model model) {
+    // Decisão de Pedro (23/11/2026): mesma resposta para qualquer telefone, mesmo com falha de envio (RS003).
+    String enviarCodigo(@RequestParam(defaultValue = "") String celular, HttpServletRequest request) {
         String digitos = celular.replaceAll("[^0-9]", "");
-        if (recuperacao.solicitarCodigo(digitos) == RecuperacaoAcessoService.ResultadoEnvio.FALHA_ENVIO) {
-            model.addAttribute("falhaEnvio", true); // regra 6: informar e permitir reenvio manual pelo mesmo canal
-            model.addAttribute("celular", digitos);
-            return "acesso/recuperar";
-        }
+        recuperacao.solicitarCodigo(digitos);
         request.getSession().setAttribute(CELULAR_RECUPERACAO, digitos);
         return "redirect:/morador/recuperar/codigo";
     }

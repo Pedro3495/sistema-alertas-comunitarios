@@ -81,11 +81,11 @@ public class OcorrenciaService {
     /**
      * RF011: qualquer representante corrige ocorrência de qualquer área antes do encerramento (regras 1 e 5).
      * Regra 6 / RF013 regra 4: auditoria com valores anteriores e novos, sem a justificativa interna.
-     * Regras 2 a 4: aviso com o resumo só se já houver alerta, para a união dos destinatários anteriores ativos.
+     * Regras 2 a 4: aviso com o resumo aprovado (obrigatório só se já houver alerta) só se já houver alerta, para a união dos destinatários anteriores ativos.
      */
     @Transactional
     public Ocorrencia alterar(UUID protocolo, TipoOcorrencia tipo, String especificacaoOutros, String descricao,
-            String localizacao, Long areaId, String justificativa, String orientacoes) {
+            String localizacao, Long areaId, String justificativa, String resumo, String orientacoes) {
         var ator = usuarios.exigirRepresentante();
         var representante = representantes.buscarPorIdComBloqueio(ator.id())
                 .orElseThrow(() -> new AccessDeniedException("Entre novamente na sua conta."));
@@ -97,7 +97,8 @@ public class OcorrenciaService {
         var alteracao = ocorrencia.alterar(tipo, especificacaoOutros, descricao, localizacao, area, justificativa, representante, clock.instant());
         em.persist(alteracao);
         auditoria.registrar("ALTERAR_OCORRENCIA #" + protocolo + ": " + alteracao.getResumo());
-        alertas.avisarAlteracao(ocorrencia, alteracao.getResumo(), orientacoes, representante);
+        // Decisão de Pedro (23/11/2026): o aviso usa o resumo escrito e aprovado pelo representante, não o texto gerado.
+        alertas.avisarAlteracao(ocorrencia, resumo, orientacoes, representante);
         return ocorrencia;
     }
 

@@ -16,7 +16,7 @@ Somente o **morador**. As fontes não preveem recuperação do representante no 
 | Código não dá entrada direta; criar nova senha e entrar com CPF e senha (r3) | `POST /morador/recuperar/codigo` grava a nova senha e redireciona para `/morador/entrar?senhaAlterada` sem autenticar. |
 | Nova senha com no mínimo 8 caracteres (Alteração; RF005 r4) | `RepresentanteService.validarSenha`, o mesmo do RF005. Senha curta não consome o código. |
 | Novo código invalida o anterior; 5 erros invalidam (r5, RS003) | Cada emissão substitui hash, prazo e contador. O quinto erro apaga o código; exige nova emissão. |
-| Falha de envio: informar e permitir reenvio manual pelo mesmo canal (r6) | Resultado `FALHA_ENVIO` (retorno `false` ou exceção do provedor) mostra "O código não foi enviado" e o botão "Reenviar código"; o reenvio é nova emissão. |
+| Falha de envio: permitir reenvio manual pelo mesmo canal (r6) | Decisão de Pedro (23/11/2026, RS003 prevalece sobre "informar a falha"): a falha (retorno `false` ou exceção do provedor) só vai para a auditoria (`FALHA_ENVIO_CODIGO_RECUPERACAO`); a resposta é a mesma de qualquer telefone, e a tela do código diz "Se o código não chegar, peça um novo". O novo pedido é a nova emissão. |
 | Sem acesso ao telefone: procurar a entidade (r4) | Texto fixo na tela; a atualização do número já é a correção do RF001. |
 | Senha não consultável (RS002) | Hash PBKDF2 do código e da senha; código não aparece em tela nem em log (teste com `CapturedOutput`). |
 

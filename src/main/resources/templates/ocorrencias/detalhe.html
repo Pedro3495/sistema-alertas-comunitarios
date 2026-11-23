@@ -100,10 +100,14 @@
         <label for="alteracao-justificativa">Justificativa interna *</label>
         <textarea id="alteracao-justificativa" name="justificativa" required th:text="${alteracao.justificativa}"
                   th:attr="aria-invalid=${erroAlteracao != null and erroAlteracao.campo == 'justificativa'}"></textarea>
+        <label for="alteracao-resumo">Resumo da mudança para o aviso (obrigatório se a ocorrência já tiver alerta)</label>
+        <textarea id="alteracao-resumo" name="resumo" th:text="${alteracao.resumo}" aria-describedby="alteracao-resumo-ajuda"
+                  th:attr="aria-invalid=${erroAlteracao != null and erroAlteracao.campo == 'resumo'}"></textarea>
+        <p id="alteracao-resumo-ajuda" class="orientacao">Escreva o texto que os moradores vão receber, sem dados pessoais nem a justificativa interna.</p>
         <label for="alteracao-orientacoes">Orientações atualizadas (opcional)</label>
         <textarea id="alteracao-orientacoes" name="orientacoes" th:text="${alteracao.orientacoes}"></textarea>
         <p class="orientacao">As fotos enviadas não podem ser removidas nem substituídas.</p>
-        <p class="orientacao">Se a ocorrência já tiver alerta, quem o recebeu ganha um aviso de alteração com o resumo da mudança e as orientações, sem a justificativa.</p>
+        <p class="orientacao">Se a ocorrência já tiver alerta, quem o recebeu ganha um aviso de alteração com o resumo escrito acima e as orientações, sem a justificativa.</p>
         <button type="submit">Salvar alteração</button>
       </form>
     </th:block>
@@ -150,6 +154,7 @@
     <p class="mensagem" role="status" th:if="${envioAlerta != null and envioAlerta == 0}">Alerta enviado a todos os destinatários.</p>
     <p class="mensagem erro" role="alert" th:if="${envioAlerta != null and envioAlerta > 0}"
        th:text="${'Falha de envio por SMS e WhatsApp para ' + envioAlerta + ' destinatário(s). O alerta continua no aplicativo; você pode reenviar só para eles.'}"></p>
+    <p class="mensagem erro" role="alert" th:if="${erroReenvio}" th:text="${erroReenvio.message}"></p>
     <th:block th:if="${ocorrencia.situacaoAtual.name() == 'CONFIRMADA'}">
       <p class="mensagem erro" role="alert" th:if="${erroAlerta}" th:text="${erroAlerta.message}"></p>
       <form method="post" th:action="@{/ocorrencias/{protocolo}/alertas(protocolo=${ocorrencia.protocolo})}">
@@ -172,7 +177,7 @@
         <p class="descricao" th:text="${c.mensagem}"></p>
         <p class="descricao" th:if="${c.orientacoes}" th:text="${'Orientações: ' + c.orientacoes}"></p>
         <p th:text="${c.destinatarios + ' destinatário(s), ' + c.falhas + ' com falha nos dois canais.'}"></p>
-        <form th:if="${c.reenviavel}" method="post" th:action="@{/ocorrencias/{protocolo}/alertas/{id}/reenvio(protocolo=${ocorrencia.protocolo},id=${c.id})}">
+        <form th:if="${c.reenviavel and ocorrencia.situacaoAtual.name() != 'ENCERRADA'}" method="post" th:action="@{/ocorrencias/{protocolo}/alertas/{id}/reenvio(protocolo=${ocorrencia.protocolo},id=${c.id})}">
           <button class="secundario" type="submit">Reenviar para quem falhou</button>
         </form>
       </li>

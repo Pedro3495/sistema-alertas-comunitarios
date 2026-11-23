@@ -13,10 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 /** RF007 / RS003: recuperação do morador por código enviado ao telefone cadastrado, sem entrada direta. */
 @Service
 public class RecuperacaoAcessoService {
-    public enum ResultadoEnvio { SOLICITADO, FALHA_ENVIO }
-
     static final String PEDIDO = "SOLICITAR_CODIGO_RECUPERACAO";
     static final String RECUSA_LIMITE = "RECUSAR_CODIGO_RECUPERACAO_LIMITE";
+    static final String FALHA_ENVIO = "FALHA_ENVIO_CODIGO_RECUPERACAO";
     static final String REDEFINICAO = "REDEFINIR_SENHA_RECUPERACAO";
     private static final int PEDIDOS_POR_HORA = 3; // decisão de Pedro, 22/11/2026
     private static final SecureRandom ALEATORIO = new SecureRandom();
@@ -38,20 +37,21 @@ public class RecuperacaoAcessoService {
     }
 
     /**
-     * Envia somente ao telefone já cadastrado, pelo canal de credenciais da pessoa (regra 1). Número desconhecido
-     * recebe a mesma resposta de sucesso: a recuperação não é pesquisa pública de pessoas (Pesquisa).
+     * Envia somente ao telefone já cadastrado, pelo canal de credenciais da pessoa (regra 1). Decisão de Pedro (23/11/2026),
+     * RS003 sobre a regra 6: sem retorno ao chamador; conhecido, desconhecido, limite ou falha de envio têm a mesma resposta.
+     * A falha fica só na auditoria e o reenvio manual é um novo pedido pelo mesmo canal.
      */
     @Transactional
-    public ResultadoEnvio solicitarCodigo(String celular) {
+    public void solicitarCodigo(String celular) {
         String codigo = "%06d".formatted(ALEATORIO.nextInt(1_000_000));
         String hash = encoder.encode(codigo); // custo igual com ou sem conta
         Morador morador = celular == null ? null
                 : repository.buscarPorCelularComBloqueio(celular).filter(Morador::isAtiva).orElse(null);
-        if (morador == null) { return ResultadoEnvio.SOLICITADO; }
+        if (morador == null) { return; }
         // Janela móvel de 60 min; a recusa responde como sucesso para não revelar se o telefone tem conta.
         if (auditoria.contarMorador(PEDIDO, morador.getId(), clock.instant().minus(Duration.ofHours(1))) >= PEDIDOS_POR_HORA) {
             auditoria.registrarMorador(RECUSA_LIMITE, morador.getId());
-            return ResultadoEnvio.SOLICITADO;
+            return;
         }
         auditoria.registrarMorador(PEDIDO, morador.getId());
         morador.emitirCodigoRecuperacao(hash, clock.instant());
@@ -62,7 +62,7 @@ public class RecuperacaoAcessoService {
             aceito = false;
         }
         // shortcut: envio dentro da transação; com provedor real, enviar após o commit.
-        return aceito ? ResultadoEnvio.SOLICITADO : ResultadoEnvio.FALHA_ENVIO;
+        if (!aceito) { auditoria.registrarMorador(FALHA_ENVIO, morador.getId()); }
     }
 
     /** Valida o código e grava a nova senha; o erro de código é confirmado junto com a contagem (regras 2, 3 e 5). */
