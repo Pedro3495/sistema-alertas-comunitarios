@@ -55,6 +55,7 @@ public class AlertaService {
         var alerta = repository.findByIdAndOcorrencia_Protocolo(alertaId, protocolo)
                 .filter(c -> c.getTipo() == TipoComunicado.ALERTA).orElseThrow(() -> new EntityNotFoundException("Alerta não encontrado."));
         alerta.distribuir(envio);
+        auditoria.registrar("REENVIAR_ALERTA #" + protocolo + " alerta " + alertaId); // RF013: só protocolo e id, sem dado pessoal
         return alerta;
     }
 

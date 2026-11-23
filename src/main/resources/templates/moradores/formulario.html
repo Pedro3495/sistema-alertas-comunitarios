@@ -1,14 +1,15 @@
 <!doctype html><html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cadastro de morador · Alertas comunitários</title><link rel="stylesheet" th:href="@{/css/residencias.css}"></head>
+<title th:text="${id == null ? 'Cadastro de morador' : 'Alterar morador'} + ' · Alertas comunitários'">Cadastro de morador · Alertas comunitários</title><link rel="stylesheet" th:href="@{/css/residencias.css}"></head>
 <body class="gestao"><header class="cabecalho"><a th:href="@{/representante}">Alertas comunitários</a>
 <nav aria-label="Navegação do representante"><a th:href="@{/areas}">Áreas de risco</a><a th:href="@{/residencias}">Residências</a><a th:href="@{/moradores}">Moradores</a><a th:href="@{/auditoria}">Auditoria</a>
 <form th:action="@{/sair}" method="post"><button class="secundario" type="submit">Sair</button></form></nav></header><main>
-<h1>Cadastrar morador</h1>
-<p>Confira o comprovante de residência antes de salvar. O documento não é anexado nem guardado no sistema.</p>
+<h1 th:text="${id == null ? 'Cadastrar morador' : 'Alterar dados do morador'}"></h1>
+<p th:if="${id != null}">CPF e celular continuam exclusivos, mesmo em conta desativada. As preferências de canais são alteradas pelo próprio morador no aplicativo.</p>
+<p><span th:if="${id != null}">Na mudança de residência, confira o novo comprovante.</span> Confira o comprovante de residência antes de salvar. O documento não é anexado nem guardado no sistema.</p>
 <p class="mensagem erro" role="alert" th:if="${erro}" th:text="${erro}"></p>
 <div class="mensagem" th:if="${#lists.isEmpty(residencias)}"><p>Cadastre uma residência antes de cadastrar o morador.</p><a th:href="@{/residencias/novo}">Cadastrar residência</a></div>
-<form class="formulario" th:action="@{/moradores/novo}" method="post">
+<form class="formulario" th:action="${id == null} ? @{/moradores/novo} : @{/moradores/{id}/editar(id=${id})}" method="post">
 <div class="campo"><label for="nomeCompleto">Nome completo</label><input id="nomeCompleto" name="nomeCompleto" th:value="${dados.nomeCompleto}" required th:attr="aria-invalid=${erros.containsKey('nomeCompleto')}" aria-describedby="erro-nomeCompleto"><p class="erro-campo" id="erro-nomeCompleto" role="alert" th:text="${erros.get('nomeCompleto')}"></p></div>
 <div class="campo"><label for="cpf">CPF</label><input id="cpf" name="cpf" inputmode="numeric" th:value="${dados.cpf}" required th:attr="aria-invalid=${erros.containsKey('cpf')}" aria-describedby="orientacao-cpf erro-cpf"><p class="orientacao" id="orientacao-cpf">Somente os 11 números, sem pontos ou traço.</p><p class="erro-campo" id="erro-cpf" role="alert" th:text="${erros.get('cpf')}"></p></div>
 <div class="campo"><label for="celular">Celular/WhatsApp</label><input id="celular" name="celular" inputmode="numeric" th:value="${dados.celular}" required th:attr="aria-invalid=${erros.containsKey('celular')}" aria-describedby="orientacao-celular erro-celular"><p class="orientacao" id="orientacao-celular">DDD e número, 11 dígitos, somente números.</p><p class="erro-campo" id="erro-celular" role="alert" th:text="${erros.get('celular')}"></p></div>
@@ -16,12 +17,12 @@
 <option value="">Selecione a residência</option>
 <option th:each="residencia : ${residencias}" th:value="${residencia.id}" th:text="|${residencia.ruaLogradouro}, ${residencia.numero} · ${residencia.bairro} · ${residencia.municipio}|" th:selected="${#strings.toString(residencia.id) == dados.residenciaId}"></option></select>
 <p class="erro-campo" id="erro-residenciaId" role="alert" th:text="${erros.get('residenciaId')}"></p></div>
-<div class="campo"><label for="canalCredenciais">Canal para a senha temporária e recuperação</label><select id="canalCredenciais" name="canalCredenciais" required th:attr="aria-invalid=${erros.containsKey('canalCredenciais')}" aria-describedby="orientacao-canal erro-canalCredenciais">
+<th:block th:if="${id == null}"><div class="campo"><label for="canalCredenciais">Canal para a senha temporária e recuperação</label><select id="canalCredenciais" name="canalCredenciais" required th:attr="aria-invalid=${erros.containsKey('canalCredenciais')}" aria-describedby="orientacao-canal erro-canalCredenciais">
 <option value="">Selecione um canal</option><option value="SMS" th:selected="${dados.canalCredenciais == 'SMS'}">SMS</option><option value="WHATSAPP" th:selected="${dados.canalCredenciais == 'WHATSAPP'}">WhatsApp</option></select>
 <p class="orientacao" id="orientacao-canal">A senha temporária será enviada somente por este canal, logo após salvar. Nesta versão o envio é simulado: nenhuma mensagem real é enviada.</p><p class="erro-campo" id="erro-canalCredenciais" role="alert" th:text="${erros.get('canalCredenciais')}"></p></div>
 <div class="campo"><label for="preferenciaAlertas">Preferência para alertas</label><select id="preferenciaAlertas" name="preferenciaAlertas" required th:attr="aria-invalid=${erros.containsKey('preferenciaAlertas')}" aria-describedby="orientacao-alertas erro-preferenciaAlertas">
 <option value="">Selecione a preferência</option><option value="SMS" th:selected="${dados.preferenciaAlertas == 'SMS'}">SMS</option><option value="WHATSAPP" th:selected="${dados.preferenciaAlertas == 'WHATSAPP'}">WhatsApp</option><option value="AMBOS" th:selected="${dados.preferenciaAlertas == 'AMBOS'}">SMS e WhatsApp</option></select>
-<p class="orientacao" id="orientacao-alertas">Se um canal de alerta falhar, o envio será tentado pelo outro disponível.</p><p class="erro-campo" id="erro-preferenciaAlertas" role="alert" th:text="${erros.get('preferenciaAlertas')}"></p></div>
-<button type="submit" th:disabled="${#lists.isEmpty(residencias)}">Salvar morador e enviar senha temporária</button></form>
+<p class="orientacao" id="orientacao-alertas">Se um canal de alerta falhar, o envio será tentado pelo outro disponível.</p><p class="erro-campo" id="erro-preferenciaAlertas" role="alert" th:text="${erros.get('preferenciaAlertas')}"></p></div></th:block>
+<button type="submit" th:disabled="${#lists.isEmpty(residencias)}" th:text="${id == null ? 'Salvar morador e enviar senha temporária' : 'Salvar alterações'}"></button></form>
 <p class="voltar"><a th:href="@{/moradores}">Voltar para moradores</a></p>
 </main></body></html>

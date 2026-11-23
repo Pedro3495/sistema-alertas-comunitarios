@@ -13,5 +13,11 @@
 <section class="manutencao" th:if="${morador.credenciaisPendentes}" aria-labelledby="titulo-falha"><h2 id="titulo-falha">A senha temporária não foi entregue</h2>
 <p role="alert">O envio simulado falhou. Tente novamente pelo mesmo canal escolhido no cadastro.</p>
 <form th:if="${morador.ativa}" th:action="@{/moradores/{id}/reenviar-senha(id=${morador.id})}" method="post"><button type="submit">Reenviar senha temporária</button></form></section>
+<p><a th:href="@{/moradores/{id}/editar(id=${morador.id})}">Alterar dados do morador</a></p>
+<section class="manutencao" aria-labelledby="titulo-situacao"><h2 id="titulo-situacao" th:text="${morador.ativa ? 'Desativar conta' : 'Reativar conta'}"></h2>
+<p th:if="${morador.ativa}">A desativação bloqueia o acesso, novos alertas e avisos de alteração ou encerramento de alertas anteriores. Relatos, fotos e auditoria são preservados, e o CPF e o celular continuam exclusivos.</p>
+<p th:unless="${morador.ativa}">A reativação devolve a mesma conta, sem criar outro cadastro.</p>
+<form th:action="${morador.ativa} ? @{/moradores/{id}/desativar(id=${morador.id})} : @{/moradores/{id}/reativar(id=${morador.id})}" method="post">
+<button th:class="${morador.ativa ? 'secundario' : null}" type="submit" th:text="${morador.ativa ? 'Desativar conta' : 'Reativar conta'}"></button></form></section>
 <p class="voltar"><a th:href="@{/moradores}">Voltar para moradores</a></p>
 </main></body></html>

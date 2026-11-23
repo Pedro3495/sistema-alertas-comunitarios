@@ -8,7 +8,7 @@ Pendentes pelas fontes, em ordem: RF001 regra 6 (o morador altera no aplicativo 
 
 ## Conferência do RF013 em `main` (antes deste PR)
 
-- Regra 1: `REGISTRAR_OCORRENCIA` (representante e morador), `VERIFICAR_OCORRENCIA`, `ALTERAR_OCORRENCIA`, `EMITIR_ALERTA`, `ENCERRAR_OCORRENCIA`, com responsável (tipo + id) e data/hora do servidor.
+- Regra 1: `REGISTRAR_OCORRENCIA` (representante e morador), `VERIFICAR_OCORRENCIA`, `ALTERAR_OCORRENCIA`, `EMITIR_ALERTA`, `REENVIAR_ALERTA` (protocolo e id do alerta, sem telefone; acrescentado na correção da revisão de `main`), `ENCERRAR_OCORRENCIA`, com responsável (tipo + id) e data/hora do servidor.
 - Regra 2 / alteração / exclusão: consulta em `/admin/auditoria` e `/auditoria` só para administrador e representante definitivo (`UsuarioAtual.exigirConsultaAuditoria`); entidade `@Immutable`, sem rota ou serviço de alteração/exclusão.
 - Regra 3: cadastro/alteração/desativação/reativação/redefinição de representantes; cadastro/alteração/exclusão de áreas e residências; cadastro/alteração/desativação/reativação e envio simulado de senha de moradores; pedido/redefinição de recuperação (RF007). Ações têm só o ID-alvo, nunca senha, hash ou código.
 - Regra 4: verificação e encerramento guardam situação anterior → nova; alteração guarda `Campo: de "anterior" para "novo"` só dos campos alterados; justificativas ficam fora (RF008 regra 6). O responsável é a referência estável `tipo:id`, então corrigir login/nome do representante não reatribui ações antigas.

@@ -39,7 +39,7 @@ public class MoradorController {
 
     @PostMapping("/novo")
     String cadastrar(@ModelAttribute("dados") FormularioMorador dados, Model model) {
-        Map<String, String> erros = validar(dados);
+        Map<String, String> erros = validar(dados, true);
         model.addAttribute("erros", erros);
         if (!erros.isEmpty()) { return formulario(model); }
         try {
@@ -47,13 +47,65 @@ public class MoradorController {
                     Long.valueOf(dados.residenciaId()), CanalCredenciais.valueOf(dados.canalCredenciais()),
                     PreferenciaAlertas.valueOf(dados.preferenciaAlertas())));
             return "redirect:/moradores/" + morador.getId();
-        } catch (IllegalArgumentException exception) {
-            String mensagem = exception.getMessage();
-            String campo = mensagem.contains("CPF") ? "cpf" : mensagem.contains("celular") ? "celular" : "residenciaId";
-            model.addAttribute("erros", Map.of(campo, mensagem));
-        } catch (DataIntegrityViolationException exception) {
-            model.addAttribute("erro", "O CPF ou o celular já pertence a outra conta, ou a residência deixou de existir.");
+        } catch (IllegalArgumentException | DataIntegrityViolationException exception) {
+            erroDoServico(exception, model);
         }
+        return formulario(model);
+    }
+
+    // RF001 "Alteração": a entidade corrige nome, CPF, celular e residência; as preferências de canais são do morador.
+    @GetMapping("/{id}/editar")
+    String editar(@PathVariable Long id, Model model) {
+        var morador = buscar(id);
+        model.addAttribute("dados", new FormularioMorador(morador.getNomeCompleto(), morador.getCpf(), morador.getCelular(),
+                morador.getResidenciaId().toString(), "", ""));
+        model.addAttribute("erros", Map.of());
+        return edicao(id, model);
+    }
+
+    @PostMapping("/{id}/editar")
+    String salvar(@PathVariable Long id, @ModelAttribute("dados") FormularioMorador dados, Model model) {
+        buscar(id);
+        Map<String, String> erros = validar(dados, false);
+        model.addAttribute("erros", erros);
+        if (!erros.isEmpty()) { return edicao(id, model); }
+        try {
+            service.alterar(id, dados.nomeCompleto(), dados.cpf(), dados.celular(), Long.valueOf(dados.residenciaId()));
+            return "redirect:/moradores/" + id;
+        } catch (IllegalArgumentException | DataIntegrityViolationException exception) {
+            erroDoServico(exception, model);
+        } catch (EntityNotFoundException exception) { throw new ResponseStatusException(HttpStatus.NOT_FOUND); }
+        return edicao(id, model);
+    }
+
+    // RF001 "Exclusão": só desativação, reversível pela entidade; a sessão aberta do morador deixa de valer (Morador.desativar).
+    @PostMapping("/{id}/desativar")
+    String desativar(@PathVariable Long id) {
+        try { service.desativar(id); }
+        catch (EntityNotFoundException exception) { throw new ResponseStatusException(HttpStatus.NOT_FOUND); }
+        return "redirect:/moradores/" + id;
+    }
+
+    @PostMapping("/{id}/reativar")
+    String reativar(@PathVariable Long id) {
+        try { service.reativar(id); }
+        catch (EntityNotFoundException exception) { throw new ResponseStatusException(HttpStatus.NOT_FOUND); }
+        return "redirect:/moradores/" + id;
+    }
+
+    private static void erroDoServico(RuntimeException exception, Model model) {
+        if (exception instanceof DataIntegrityViolationException) {
+            model.addAttribute("erro", "O CPF ou o celular já pertence a outra conta, ou a residência deixou de existir.");
+            return;
+        }
+        String mensagem = exception.getMessage();
+        String campo = mensagem.contains("CPF") ? "cpf" : mensagem.contains("celular") ? "celular"
+                : mensagem.contains("nome") ? "nomeCompleto" : "residenciaId";
+        model.addAttribute("erros", Map.of(campo, mensagem));
+    }
+
+    private String edicao(Long id, Model model) {
+        model.addAttribute("id", id);
         return formulario(model);
     }
 
@@ -79,7 +131,7 @@ public class MoradorController {
         return "moradores/formulario";
     }
 
-    private static Map<String, String> validar(FormularioMorador dados) {
+    private static Map<String, String> validar(FormularioMorador dados, boolean cadastro) {
         Map<String, String> erros = new LinkedHashMap<>();
         if (vazio(dados.nomeCompleto())) { erros.put("nomeCompleto", "Informe o nome completo."); }
         if (!Morador.cpfValido(dados.cpf())) { erros.put("cpf", "Informe um CPF de 11 dígitos com verificadores válidos, só números."); }
@@ -89,10 +141,10 @@ public class MoradorController {
         if (vazio(dados.residenciaId()) || !dados.residenciaId().matches("[0-9]{1,18}")) {
             erros.put("residenciaId", "Selecione uma residência cadastrada.");
         }
-        if (!valido(CanalCredenciais.class, dados.canalCredenciais())) {
+        if (cadastro && !valido(CanalCredenciais.class, dados.canalCredenciais())) {
             erros.put("canalCredenciais", "Escolha SMS ou WhatsApp para a senha temporária.");
         }
-        if (!valido(PreferenciaAlertas.class, dados.preferenciaAlertas())) {
+        if (cadastro && !valido(PreferenciaAlertas.class, dados.preferenciaAlertas())) {
             erros.put("preferenciaAlertas", "Escolha SMS, WhatsApp ou ambos para os alertas.");
         }
         return erros;
