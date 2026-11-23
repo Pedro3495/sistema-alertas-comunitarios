@@ -8,24 +8,27 @@ Usar o mesmo projeto reduz a quantidade de processos, contratos e ferramentas ne
 
 ## Organização
 
+Um pacote por funcionalidade; em cada um, controller (HTTP), serviço (caso de uso e transação), entidade de domínio (regras) e repositório Spring Data JPA (persistência).
+
 ```text
 src/main/java/br/edu/alertas/
-  config/          configuração transversal e segurança
-  inicio/          página técnica inicial
-  # Próximos pacotes serão criados por funcionalidade, conforme a spec:
-  # moradores/, residencias/, areas/, representantes/, acesso/,
-  # ocorrencias/, alertas/, auditoria/
+  config/          SegurancaConfig: três cadeias Spring Security (admin, morador, representante), CSRF ativo
+  administracao/   conta única de administrador e comando local configurar-admin
+  gestao/          telas do administrador: representantes e caixa do envio simulado
+  representantes/  conta, senha temporária/definitiva e bloqueio de login
+  acesso/          login, troca de senha e recuperação; providers e filtro de sessão
+  areas/           áreas de risco (RF003)
+  residencias/     residências vinculadas a uma área (RF002)
+  moradores/       moradores, credenciais, preferências e porta EnvioCredenciais (RF001, RF005, RF007)
+  ocorrencias/     registro com fotos, consulta, verificação, alertas, alteração e encerramento (RF006, RF008–RF012), porta EnvioAlertas
+  auditoria/       registro imutável e consulta (RF013)
+  inicio/          página inicial com os três acessos
 src/main/resources/
-  templates/       páginas Thymeleaf
-  static/          CSS e recursos locais
-  db/migration/    migrações Flyway versionadas
-src/test/          testes das regras e da integração
-database/          script SQL de entrega
-specs/             escopo de implementação por RF
-docs/              decisões, requisitos, guias e avaliação
+  templates/       páginas Thymeleaf por funcionalidade
+  static/          CSS e JS (rascunho/redução de fotos das ocorrências)
+  db/migration/    migrações Flyway V1–V19
+database/          schema.sql (exportação da estrutura) e contas-permissoes.sql
 ```
-
-Os pacotes comentados são planejados; não representam módulos já implementados.
 
 ## Fluxo de uma operação
 
@@ -35,17 +38,19 @@ Controller recebe dados e apresenta respostas. Serviço delimita transações e 
 
 ## POO e integrações
 
-Priorizar modelos com comportamento e invariantes, evitando entidades usadas só como listas de setters. Interfaces de integração podem permitir polimorfismo nos canais de envio e dublês em testes quando o RF010 for implementado. Não criar classes de envio que finjam sucesso real nem escolher provedor nesta base. Herança somente com relação de substituição válida; mapear as demonstrações reais em `docs/POO.md`.
+Modelos com comportamento e invariantes; exemplos com arquivo:linha em `docs/POO.md`. SMS e WhatsApp passam por duas portas (`EnvioCredenciais` e `EnvioAlertas`) com uma única implementação **simulada**, sem rede: nenhuma mensagem real é enviada. Para demonstração local, `alertas.envio-simulado.exibir=true` mostra ao administrador, em `/admin/simulador/mensagens`, as senhas temporárias e códigos que seriam enviados (só em memória; nunca em log, banco ou auditoria). Um provedor real substituirá a implementação sem mudar os serviços.
 
 ## Segurança e dados
 
-Na branch de acesso RF005, `/`, `/css/**`, `/actuator/health` e `/entrar` são públicos. O login de representantes usa provider próprio conectado ao domínio persistido. A temporária dá autoridade somente para `/trocar-senha`; a definitiva permite `/representante`. Sessões são revalidadas por conta e versão da credencial. As demais rotas seguem negadas. CSRF permanece habilitado; não existe conta padrão ou acesso de moradores implementado. Autorização administrativa e demais operações ainda serão integradas. Consulte `docs/acesso/README.md`.
+Três cadeias isoladas em `SegurancaConfig`: `/admin/**` (administrador), `/morador/**` (morador, login por CPF) e o restante (representante). Senha temporária só dá acesso à troca de senha; sessões são revalidadas por conta e versão da credencial; bloqueio após falhas repetidas. Rotas não listadas são negadas. CSRF ativo em todos os formulários. Templates usam apenas `th:text` (escape automático); não há `th:utext`.
 
-Credenciais do PostgreSQL ficam em `.env` local ignorado pelo Git; CI usa banco descartável próprio. Não compartilhar banco entre os computadores, não publicar uploads, dumps com dados ou credenciais. Usar apenas dados fictícios nos testes e apresentações de desenvolvimento.
+HTTPS (RS009) é responsabilidade da implantação: a aplicação local roda em HTTP no loopback. Veja "Implantação com HTTPS" no README.
+
+Credenciais do PostgreSQL ficam em `.env` local ignorado pelo Git; CI usa banco descartável próprio. Usar apenas dados fictícios.
 
 ## Banco e mudanças compartilhadas
 
-Combinar os números de migração antes de tarefas paralelas. Nunca editar uma migração já integrada/aplicada; adicionar a próxima. Para o AV03, manter a exportação de estrutura em `database/schema.sql`, sem dados pessoais ou senhas. Na preparação inicial há somente a versão técnica Flyway, ainda sem tabelas de domínio.
+Combinar os números de migração antes de tarefas paralelas. Nunca editar uma migração já integrada/aplicada; adicionar a próxima. Para o AV03, manter a exportação de estrutura em `database/schema.sql`, sem dados pessoais ou senhas.
 
 ## Fontes técnicas consultadas
 

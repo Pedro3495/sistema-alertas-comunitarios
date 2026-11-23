@@ -1,13 +1,15 @@
 # Evidências de orientação a objetos
 
-POO representa 60% da avaliação. As evidências abaixo acompanham os objetos de negócio implementados; isso não significa que os quatro pilares ou os RF completos já estejam entregues.
+POO representa 60% da avaliação. Resumo com exemplos reais (arquivo:linha em `src/main/java/br/edu/alertas/`); as seções seguintes detalham cada entrega.
 
-| Pilar | O que demonstrar | Classe/método e teste reais |
+| Pilar | Exemplo real | Onde |
 |---|---|---|
-| Encapsulamento | Estado e invariantes protegidos por operações válidas | `AreaRisco`: campos privados, sem setters públicos; `alterarDefinicao` valida os dois campos antes de modificar o objeto. `AreaRiscoTests` verifica rejeição de campos vazios e preservação do estado na alteração inválida. |
-| Abstração | Contrato que expõe uma operação sem acoplar detalhes | `AreaRiscoService` expõe cadastro, alteração e pesquisa sem exigir SQL do chamador. `AreaRiscoRepository` abstrai o acesso ao PostgreSQL por JPA; não é uma interface artificial criada para cada classe. Os testes de persistência verificam o resultado gravado. |
-| Herança | Relação de substituição válida, com comportamento compreendido | Pendente; não forçar hierarquia para cumprir tabela |
-| Polimorfismo | Mesmo contrato com comportamentos substituíveis | Pendente |
+| Encapsulamento | Campos privados sem setters; só operações que validam antes de mudar o estado | `areas/AreaRisco.java:18-31` (`alterarDefinicao`), `ocorrencias/Ocorrencia.java:55` (`verificar` é o único caminho para mudar a situação), `moradores/Morador.java:39-43` (bloqueio e código de recuperação embutidos) |
+| Abstração | Porta que esconde o provedor de envio do caso de uso | `moradores/EnvioCredenciais.java:4-9`, usada em `moradores/MoradorService.java:26,71`; `ocorrencias/EnvioAlertas.java:8`, usada em `ocorrencias/AlertaService.java:28` |
+| Herança | Especialização real, usada pelo código que trata a classe-mãe | `ocorrencias/ErroOcorrencia.java:3-5` estende `IllegalArgumentException` acrescentando o campo inválido; o domínio lança e `ocorrencias/OcorrenciaController.java:63` trata pelo tipo da classe-mãe. Filtros `acesso/SessaoValidadaFilter.java:13` e `gestao/SessaoAdministradorFilter.java:11` herdam `OncePerRequestFilter` e sobrescrevem `doFilterInternal` (herança técnica, não do domínio) |
+| Polimorfismo | Mesmo contrato, implementações trocáveis escolhidas em tempo de execução | `EnvioCredenciaisSimulado` (`moradores/EnvioCredenciaisSimulado.java:12`) e `EnvioAlertasSimulado` (`ocorrencias/EnvioAlertasSimulado.java:13`) implementam as portas; um provedor real substitui sem mudar o serviço, e os testes trocam por dublês. Três `AuthenticationProvider` (`acesso/MoradorAuthenticationProvider.java:21`, `acesso/RepresentanteAuthenticationProvider.java:21`, `gestao/AdministradorAuthenticationProvider.java:15`) respondem ao mesmo `authenticate`. `ocorrencias/DestinatarioComunicado.java:24-26` chama `envio.enviar` sem saber qual implementação está ativa |
+
+Composição no lugar de herança forçada: `BloqueioLogin` (`@Embeddable`) é reaproveitado por `Morador`, `Representante` e `Administrador`; `Comunicado` usa fábricas (`ocorrencias/Comunicado.java:40,52,60`) para alerta, alteração e encerramento em vez de três subclasses.
 
 Expliquem por que cada escolha ajuda o domínio. Anotações JPA ou estender uma classe do framework, por si só, não demonstram domínio dos quatro pilares. A escolha de onde usar herança deve ser discutida durante a modelagem, antes de construir uma hierarquia artificial.
 
