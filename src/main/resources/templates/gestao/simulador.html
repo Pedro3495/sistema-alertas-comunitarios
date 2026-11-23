@@ -11,6 +11,6 @@
 <ul class="resultados"><li th:each="m : ${mensagens}"><div>
 <h2><span th:text="${m.canal}"></span> para <span th:text="${m.destino}"></span></h2>
 <p th:text="${m.conteudo}"></p>
-<p><time th:text="${m.quando}"></time> (UTC)</p>
+<p><time th:datetime="${m.quando}" th:text="${#temporals.format(m.quando, 'dd/MM/yyyy HH:mm', 'America/Sao_Paulo')}"></time></p>
 </div></li></ul>
 </main></body></html>

@@ -53,8 +53,8 @@
       <form method="post" th:action="@{/ocorrencias/{protocolo}/verificacao(protocolo=${ocorrencia.protocolo})}">
         <fieldset>
           <legend>Resultado da verificação *</legend>
-          <label><input type="radio" name="situacao" value="CONFIRMADA" required th:checked="${decisao == 'CONFIRMADA'}"> Confirmada</label>
-          <label><input type="radio" name="situacao" value="NAO_CONFIRMADA" th:checked="${decisao == 'NAO_CONFIRMADA'}"> Não confirmada</label>
+          <label class="confirmacao"><input type="radio" name="situacao" value="CONFIRMADA" required th:checked="${decisao == 'CONFIRMADA'}"> Confirmada</label>
+          <label class="confirmacao"><input type="radio" name="situacao" value="NAO_CONFIRMADA" th:checked="${decisao == 'NAO_CONFIRMADA'}"> Não confirmada</label>
         </fieldset>
         <label for="justificativa">Justificativa interna *</label>
         <textarea id="justificativa" name="justificativa" required th:text="${justificativa}"
@@ -71,7 +71,7 @@
     <ul th:unless="${#lists.isEmpty(verificacoes)}" class="verificacoes">
       <li th:each="v : ${verificacoes}">
         <strong th:text="${v.situacao}"></strong> · <span th:text="${v.representanteNome}"></span> ·
-        <time th:datetime="${v.verificadaEm}" th:text="${v.verificadaEm}"></time>
+        <time th:datetime="${v.verificadaEm}" th:text="${#temporals.format(v.verificadaEm, 'dd/MM/yyyy HH:mm', 'America/Sao_Paulo')}"></time>
         <p class="descricao" th:text="${v.justificativa}"></p>
       </li>
     </ul>
@@ -115,7 +115,7 @@
     <p th:if="${#lists.isEmpty(alteracoes)}">Nenhuma alteração registrada.</p>
     <ul th:unless="${#lists.isEmpty(alteracoes)}" class="verificacoes">
       <li th:each="a : ${alteracoes}">
-        <span th:text="${a.representanteNome}"></span> · <time th:datetime="${a.alteradaEm}" th:text="${a.alteradaEm}"></time>
+        <span th:text="${a.representanteNome}"></span> · <time th:datetime="${a.alteradaEm}" th:text="${#temporals.format(a.alteradaEm, 'dd/MM/yyyy HH:mm', 'America/Sao_Paulo')}"></time>
         <p class="descricao" th:text="${a.resumo}"></p>
         <p class="descricao" th:text="${'Justificativa: ' + a.justificativa}"></p>
       </li>
@@ -143,7 +143,7 @@
     </th:block>
     <div th:if="${encerramento}" class="verificacoes">
       <p><strong>Encerrada · somente consulta</strong> · <span th:text="${encerramento.representanteNome}"></span> ·
-        <time th:datetime="${encerramento.encerradaEm}" th:text="${encerramento.encerradaEm}"></time></p>
+        <time th:datetime="${encerramento.encerradaEm}" th:text="${#temporals.format(encerramento.encerradaEm, 'dd/MM/yyyy HH:mm', 'America/Sao_Paulo')}"></time></p>
       <p class="descricao" th:text="${'Justificativa: ' + encerramento.justificativa}"></p>
     </div>
   </section>
@@ -173,7 +173,7 @@
     <ul th:unless="${#lists.isEmpty(comunicados)}" class="verificacoes">
       <li th:each="c : ${comunicados}">
         <strong th:text="${c.tipo.rotulo + ': ' + c.titulo}"></strong> · <span th:text="${c.representanteNome}"></span> ·
-        <time th:datetime="${c.emitidoEm}" th:text="${c.emitidoEm}"></time> · <span th:text="${'Área ' + c.areaNome}"></span>
+        <time th:datetime="${c.emitidoEm}" th:text="${#temporals.format(c.emitidoEm, 'dd/MM/yyyy HH:mm', 'America/Sao_Paulo')}"></time> · <span th:text="${'Área ' + c.areaNome}"></span>
         <p class="descricao" th:text="${c.mensagem}"></p>
         <p class="descricao" th:if="${c.orientacoes}" th:text="${'Orientações: ' + c.orientacoes}"></p>
         <p th:text="${c.destinatarios + ' destinatário(s), ' + c.falhas + ' com falha nos dois canais.'}"></p>
