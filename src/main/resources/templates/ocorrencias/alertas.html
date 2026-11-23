@@ -17,7 +17,7 @@
   <p th:if="${#lists.isEmpty(alertas)}">Nenhum alerta para você.</p>
   <ul th:unless="${#lists.isEmpty(alertas)}" class="verificacoes">
     <li th:each="a : ${alertas}">
-      <strong th:text="${a.tipo.rotulo + ': ' + a.titulo}"></strong> · <time th:datetime="${a.emitidoEm}" th:text="${a.emitidoEm}"></time>
+      <strong th:text="${a.tipo.rotulo + ': ' + a.titulo}"></strong> · <time th:datetime="${a.emitidoEm}" th:text="${#temporals.format(a.emitidoEm, 'dd/MM/yyyy HH:mm', 'America/Sao_Paulo')}"></time>
       <p class="descricao" th:text="${a.mensagem}"></p>
       <p class="descricao" th:if="${a.orientacoes}" th:text="${'Orientações: ' + a.orientacoes}"></p>
       <p th:text="${'Protocolo da ocorrência: ' + a.protocolo}"></p>
