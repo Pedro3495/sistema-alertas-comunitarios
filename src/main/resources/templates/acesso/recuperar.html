@@ -11,18 +11,14 @@
 <main id="conteudo">
   <h1>Recuperar acesso</h1>
   <p class="introducao">Confirme o telefone do seu cadastro.</p>
-  <div class="mensagem erro" role="alert" th:if="${falhaEnvio}">
-    <p><strong>O código não foi enviado.</strong></p>
-    <p>Tente reenviar. O código vai pelo mesmo canal escolhido no cadastro; um novo envio invalida o código anterior.</p>
-  </div>
   <form th:action="@{/morador/recuperar}" method="post">
     <div class="campo">
       <label for="celular">Celular com DDD</label>
-      <input id="celular" name="celular" type="tel" inputmode="numeric" autocomplete="tel" required th:value="${celular}"
+      <input id="celular" name="celular" type="tel" inputmode="numeric" autocomplete="tel" required
              aria-describedby="orientacaoCanal">
       <p id="orientacaoCanal" class="orientacao">O código será enviado ao telefone cadastrado, pelo canal escolhido no cadastro para senhas (SMS ou WhatsApp). Envio simulado nesta versão.</p>
     </div>
-    <button type="submit" th:text="${falhaEnvio} ? 'Reenviar código' : 'Enviar código'">Enviar código</button>
+    <button type="submit">Enviar código</button>
   </form>
   <h2>Não tem mais acesso ao telefone?</h2>
   <p>Procure a entidade pública para atualizar o número.</p>

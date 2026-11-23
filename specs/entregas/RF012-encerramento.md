@@ -18,7 +18,7 @@ Pendentes pelas fontes, em ordem: RF012 e partes do RF013 (RF001–RF011 entregu
 ## Decisões de interpretação (registradas, sem regra nova)
 
 - O resumo do motivo só é exigido quando há alerta anterior: o texto aprovado o lista em "Conteúdo do aviso quando houver alerta anterior", e o único campo obrigatório do encerramento é a justificativa. Sem alerta, o resumo digitado é ignorado (não há aviso).
-- O reenvio manual de um alerta emitido antes do encerramento (RF010 regra 4) continua disponível: é nova tentativa de entrega do mesmo alerta, não alteração da ocorrência. Se a dupla entender o contrário, é um teste de situação em `AlertaService.reenviar`.
+- Reenvio manual de alerta após o encerramento: **substituído pela decisão de Pedro (23/11/2026)** — recusado em `AlertaService.reenviar`, sem envio.
 
 ## Limites
 

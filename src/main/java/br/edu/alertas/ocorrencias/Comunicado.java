@@ -51,6 +51,7 @@ public class Comunicado {
     /** RF011 regra 4 (usado pelo RF009 regra 4): protocolo, indicação de alteração, resumo e orientações quando houver. */
     static Comunicado alteracao(Ocorrencia ocorrencia, String resumo, String orientacoes,
             Collection<Morador> destinatariosAnteriores, Representante representante, Instant agora) {
+        exigir(resumo, "resumo", "Informe o resumo da mudança para o aviso de alteração.");
         return new Comunicado(TipoComunicado.ALTERACAO, ocorrencia, "Alteração da ocorrência " + ocorrencia.getProtocolo(),
                 resumo, orientacoes, destinatariosAnteriores, representante, agora);
     }
