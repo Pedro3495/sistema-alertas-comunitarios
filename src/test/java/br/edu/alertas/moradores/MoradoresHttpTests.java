@@ -269,6 +269,58 @@ class MoradoresHttpTests {
                 .containsExactly("ALTERAR_PREFERENCIAS_MORADOR #" + id);
     }
 
+    // RF001 "Alteração" e "Exclusão" pela tela do representante, com CSRF, auditoria e revogação da sessão do morador.
+    @Test
+    void representanteAlteraDesativaEReativaMoradorPelaTela() throws Exception {
+        long id = cadastrarPeloRepresentante();
+        jdbc.update("UPDATE moradores SET senha_hash = ?, troca_senha_obrigatoria = false WHERE id = ?", encoder.encode(DEFINITIVA), id);
+        long outraResidencia = jdbc.queryForObject("INSERT INTO residencias(rua_logradouro, numero, bairro, municipio, area_id) VALUES ('Rua Nova Fictícia', '10', 'Bairro', 'Município', ?) RETURNING id", Long.class, area);
+        jdbc.update("INSERT INTO moradores(nome_completo, cpf, celular, residencia_id, canal_credenciais, preferencia_alertas, ativa) VALUES ('Outro', '11144477735', '81900000009', ?, 'SMS', 'SMS', false)", outraResidencia);
+        try {
+            var navegador = autenticado();
+            String url = "/moradores/" + id;
+            assertThat(navegador.get(url).body()).contains("href=\"" + url + "/editar\"", "Desativar conta");
+            String edicao = navegador.get(url + "/editar").body();
+            assertThat(edicao).contains("Alterar dados do morador", "value=\"52998224725\"", "novo comprovante").doesNotContain("canalCredenciais");
+            var correcao = Map.of("nomeCompleto", "Nome Corrigido", "cpf", "11144477735", "celular", "81900000002", "residenciaId", Long.toString(outraResidencia));
+            assertThat(navegador.form(url + "/editar", correcao).statusCode()).as("sem CSRF").isEqualTo(403);
+            var duplicado = navegador.post(url + "/editar", edicao, correcao);
+            assertThat(duplicado.statusCode()).isEqualTo(200);
+            assertThat(duplicado.body()).as("CPF de conta desativada continua exclusivo").contains("O CPF já pertence a outra conta.", "Nome Corrigido");
+            var invalido = navegador.post(url + "/editar", edicao, Map.of("nomeCompleto", " ", "cpf", "12345678900", "celular", "8190", "residenciaId", ""));
+            assertThat(invalido.body()).contains("Informe o nome completo.", "verificadores válidos", "DDD e 11 dígitos", "Selecione uma residência");
+            var salvo = navegador.post(url + "/editar", edicao, Map.of("nomeCompleto", "Nome Corrigido", "cpf", "39053344705", "celular", "81900000002", "residenciaId", Long.toString(outraResidencia)));
+            assertThat(salvo.headers().firstValue("Location").orElseThrow()).endsWith(url);
+            assertThat(jdbc.queryForMap("SELECT nome_completo, cpf, celular, residencia_id, canal_credenciais, preferencia_alertas FROM moradores WHERE id = ?", id))
+                    .containsEntry("nome_completo", "Nome Corrigido").containsEntry("cpf", "39053344705").containsEntry("celular", "81900000002")
+                    .containsEntry("residencia_id", outraResidencia).containsEntry("canal_credenciais", "SMS").containsEntry("preferencia_alertas", "AMBOS");
+
+            var morador = new Navegador();
+            morador.post("/morador/entrar", morador.get("/morador/entrar").body(), Map.of("cpf", "39053344705", "senha", DEFINITIVA));
+            assertThat(morador.get("/morador").statusCode()).isEqualTo(200);
+            String detalhe = navegador.get(url).body();
+            assertThat(navegador.form(url + "/desativar", Map.of()).statusCode()).as("sem CSRF").isEqualTo(403);
+            assertThat(navegador.post(url + "/desativar", detalhe, Map.of()).headers().firstValue("Location").orElseThrow()).endsWith(url);
+            assertThat(morador.get("/morador").headers().firstValue("Location").orElseThrow()).as("sessão revogada").endsWith("/morador/entrar?expirado");
+            assertThat(navegador.get(url).body()).contains("Conta desativada", "Reativar conta", "mesma conta");
+            assertThat(navegador.post(url + "/reativar", detalhe, Map.of()).headers().firstValue("Location").orElseThrow()).endsWith(url);
+            assertThat(jdbc.queryForObject("SELECT ativa FROM moradores WHERE id = ?", Boolean.class, id)).isTrue();
+            assertThat(navegador.post("/moradores/999999999/desativar", detalhe, Map.of()).statusCode()).isEqualTo(404);
+            assertThat(acoes()).filteredOn(a -> !a.contains("SENHA_TEMPORARIA"))
+                    .containsExactly("CADASTRAR_MORADOR #" + id, "ALTERAR_MORADOR #" + id, "DESATIVAR_MORADOR #" + id, "REATIVAR_MORADOR #" + id);
+
+            var anonimo = new Navegador();
+            assertThat(anonimo.get(url + "/editar").statusCode()).isEqualTo(403);
+            assertThat(anonimo.form(url + "/desativar", Map.of()).statusCode()).isEqualTo(403);
+            morador.post("/morador/entrar", morador.get("/morador/entrar").body(), Map.of("cpf", "39053344705", "senha", DEFINITIVA));
+            assertThat(morador.get(url + "/editar").statusCode()).as("morador não usa funções da entidade").isEqualTo(403);
+        } finally {
+            jdbc.update("DELETE FROM registros_auditoria WHERE responsavel_tipo = 'MORADOR' AND responsavel_id IN (SELECT id FROM moradores WHERE residencia_id = ?)", outraResidencia);
+            jdbc.update("DELETE FROM moradores WHERE residencia_id = ?", outraResidencia);
+            jdbc.update("DELETE FROM residencias WHERE id = ?", outraResidencia);
+        }
+    }
+
     private long cadastrarPeloRepresentante() throws Exception {
         var navegador = autenticado();
         var resposta = navegador.post("/moradores/novo", navegador.get("/moradores/novo").body(), dados("52998224725", "81900000001", "SMS"));

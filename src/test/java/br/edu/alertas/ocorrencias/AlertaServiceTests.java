@@ -73,6 +73,8 @@ class AlertaServiceTests extends OcorrenciasFixtures {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM destinatarios_comunicado WHERE entregue AND comunicado_id = ?", Long.class, segundo.getId())).isEqualTo(3);
         assertThat(jdbc.queryForObject("SELECT area_id FROM comunicados_ocorrencia WHERE id = ?", Long.class, segundo.getId())).isEqualTo(area);
         assertThat(acoes()).filteredOn(a -> a.startsWith("EMITIR_ALERTA")).containsExactly("EMITIR_ALERTA #" + p, "EMITIR_ALERTA #" + p);
+        assertThat(acoes()).filteredOn(a -> a.startsWith("REENVIAR_ALERTA")).containsExactly("REENVIAR_ALERTA #" + p + " alerta " + segundo.getId())
+                .allSatisfy(a -> assertThat(a).doesNotContain(celular(sms)));
         assertThatExceptionOfType(EntityNotFoundException.class).isThrownBy(() -> alertas.reenviar(confirmada(), segundo.getId()));
     }
 

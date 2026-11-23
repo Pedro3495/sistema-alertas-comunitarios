@@ -316,6 +316,9 @@ class OcorrenciasHttpTests extends OcorrenciasFixtures {
                 "1 destinatário(s), 0 com falha nos dois canais.").doesNotContain("Reenviar para quem falhou");
         assertThat(rep.form("POST", rota + "/999999999/reenvio", Map.of("_csrf", token)).statusCode()).isEqualTo(404);
         assertThat(acoes()).contains("EMITIR_ALERTA #" + p);
+        long alertaId = jdbc.queryForObject("SELECT c.id FROM comunicados_ocorrencia c JOIN ocorrencias o ON o.id = c.ocorrencia_id WHERE o.protocolo = ?::uuid", Long.class, p);
+        assertThat(rep.form("POST", rota + "/" + alertaId + "/reenvio", Map.of("_csrf", token)).statusCode()).isEqualTo(302);
+        assertThat(acoes()).contains("REENVIAR_ALERTA #" + p + " alerta " + alertaId);
 
         var vizinho = moradorAutenticado(cpf);
         assertThat(vizinho.get("/morador/alertas").body()).contains("Alerta: Alerta fictício", "Água subindo", "Orientações: Saia pela rua alta", p.toString());
