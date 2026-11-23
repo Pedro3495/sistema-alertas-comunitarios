@@ -1,0 +1,16 @@
+<!doctype html><html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Envio simulado · Alertas comunitários</title><link rel="stylesheet" th:href="@{/css/gestao.css}"></head>
+<body class="gestao"><header class="cabecalho"><a th:href="@{/}">Alertas comunitários</a>
+<nav aria-label="Navegação do administrador"><a th:href="@{/admin/representantes}">Representantes</a><a th:href="@{/admin/auditoria}">Auditoria</a><a th:href="@{/admin/simulador/mensagens}">Envio simulado</a>
+<form th:action="@{/admin/sair}" method="post"><button class="secundario" type="submit">Sair</button></form></nav></header><main>
+<h1>ENVIO SIMULADO — demonstração</h1>
+<p class="mensagem" role="status">Nenhum SMS ou WhatsApp real é enviado. Esta página mostra, só ao administrador e só na memória do servidor, as últimas mensagens que seriam enviadas aos moradores (senha temporária e código de recuperação). Reiniciar o servidor apaga a lista.</p>
+<p><a th:href="@{/admin/simulador/mensagens}">Atualizar</a></p>
+<p th:if="${#lists.isEmpty(mensagens)}">Nenhuma mensagem simulada até agora.</p>
+<ul class="resultados"><li th:each="m : ${mensagens}"><div>
+<h2><span th:text="${m.canal}"></span> para <span th:text="${m.destino}"></span></h2>
+<p th:text="${m.conteudo}"></p>
+<p><time th:text="${m.quando}"></time> (UTC)</p>
+</div></li></ul>
+</main></body></html>

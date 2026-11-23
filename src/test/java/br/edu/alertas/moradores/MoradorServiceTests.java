@@ -303,10 +303,32 @@ class MoradorServiceTests {
 
     @Test
     void simuladorSemRedeAceitaPorPadraoESimulaFalhaQuandoConfigurado() {
-        assertThat(new EnvioCredenciaisSimulado(false).enviarSenhaTemporaria(CanalCredenciais.SMS, "81900000001", "senha-ficticia")).isTrue();
-        assertThat(new EnvioCredenciaisSimulado(true).enviarSenhaTemporaria(CanalCredenciais.WHATSAPP, "81900000001", "senha-ficticia")).isFalse();
-        assertThat(new EnvioCredenciaisSimulado(false).enviarCodigoRecuperacao(CanalCredenciais.SMS, "81900000001", "000000")).isTrue();
-        assertThat(new EnvioCredenciaisSimulado(true).enviarCodigoRecuperacao(CanalCredenciais.SMS, "81900000001", "000000")).isFalse();
+        assertThat(new EnvioCredenciaisSimulado(false, new CaixaSaidaSimulada(false)).enviarSenhaTemporaria(CanalCredenciais.SMS, "81900000001", "senha-ficticia")).isTrue();
+        assertThat(new EnvioCredenciaisSimulado(true, new CaixaSaidaSimulada(false)).enviarSenhaTemporaria(CanalCredenciais.WHATSAPP, "81900000001", "senha-ficticia")).isFalse();
+        assertThat(new EnvioCredenciaisSimulado(false, new CaixaSaidaSimulada(false)).enviarCodigoRecuperacao(CanalCredenciais.SMS, "81900000001", "000000")).isTrue();
+        assertThat(new EnvioCredenciaisSimulado(true, new CaixaSaidaSimulada(false)).enviarCodigoRecuperacao(CanalCredenciais.SMS, "81900000001", "000000")).isFalse();
+    }
+
+    @Test
+    void caixaSaidaSimuladaSoGuardaQuandoLigadaMascaraDestinoELimitaQuantidade() {
+        var desligada = new CaixaSaidaSimulada(false);
+        new EnvioCredenciaisSimulado(false, desligada).enviarSenhaTemporaria(CanalCredenciais.SMS, "81900000001", "senha-ficticia");
+        assertThat(desligada.mensagens()).isEmpty();
+
+        var ligada = new CaixaSaidaSimulada(true);
+        var simulador = new EnvioCredenciaisSimulado(false, ligada);
+        simulador.enviarSenhaTemporaria(CanalCredenciais.WHATSAPP, "81900000001", "senha-ficticia");
+        simulador.enviarCodigoRecuperacao(CanalCredenciais.SMS, "81900000002", "123456");
+        assertThat(ligada.mensagens()).extracting(CaixaSaidaSimulada.Mensagem::destino).containsExactly("***0002", "***0001");
+        assertThat(ligada.mensagens().get(0).conteudo()).contains("123456");
+        assertThat(ligada.mensagens().get(1).conteudo()).contains("senha-ficticia");
+        assertThat(ligada.mensagens()).noneMatch(m -> m.destino().contains("819000"));
+        for (int i = 0; i < CaixaSaidaSimulada.LIMITE + 5; i++) {
+            simulador.enviarCodigoRecuperacao(CanalCredenciais.SMS, "81900000003", "000000");
+        }
+        assertThat(ligada.mensagens()).hasSize(CaixaSaidaSimulada.LIMITE);
+        new EnvioCredenciaisSimulado(true, ligada).enviarCodigoRecuperacao(CanalCredenciais.SMS, "81900000004", "999999");
+        assertThat(ligada.mensagens()).noneMatch(m -> m.conteudo().contains("999999"));
     }
 
     private String senhaEnviada(int envios, CanalCredenciais canal, String celular) {

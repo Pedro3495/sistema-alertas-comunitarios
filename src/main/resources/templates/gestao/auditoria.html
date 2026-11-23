@@ -2,7 +2,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Auditoria · Alertas comunitários</title><link rel="stylesheet" th:href="@{/css/gestao.css}"></head>
 <body class="gestao"><header class="cabecalho"><a th:href="@{/}">Alertas comunitários</a>
-<nav th:if="${administrador}" aria-label="Navegação do administrador"><a th:href="@{/admin/representantes}">Representantes</a><a th:href="@{/admin/auditoria}">Auditoria</a>
+<nav th:if="${administrador}" aria-label="Navegação do administrador"><a th:href="@{/admin/representantes}">Representantes</a><a th:href="@{/admin/auditoria}">Auditoria</a><a th:if="${@caixaSaidaSimulada.ativa()}" th:href="@{/admin/simulador/mensagens}">Envio simulado</a>
 <form th:action="@{/admin/sair}" method="post"><button class="secundario" type="submit">Sair</button></form></nav><a th:unless="${administrador}" th:href="@{/representante}">Voltar à minha conta</a></header><main>
 <h1>Registro de auditoria</h1><p>Consulte as ações realizadas. Os registros não podem ser alterados ou excluídos.</p>
 <p class="mensagem erro" role="alert" th:if="${erro}" th:text="${erro}"></p>

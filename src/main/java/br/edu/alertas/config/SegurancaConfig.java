@@ -28,7 +28,7 @@ public class SegurancaConfig {
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
                         .requestMatchers("/admin/entrar").permitAll()
-                        .requestMatchers("/admin/representantes", "/admin/representantes/**", "/admin/auditoria").hasAuthority("ADMINISTRADOR")
+                        .requestMatchers("/admin/representantes", "/admin/representantes/**", "/admin/auditoria", "/admin/simulador/mensagens").hasAuthority("ADMINISTRADOR")
                         .anyRequest().denyAll())
                 .formLogin(form -> form.loginPage("/admin/entrar").loginProcessingUrl("/admin/entrar")
                         .usernameParameter("login").passwordParameter("senha")
