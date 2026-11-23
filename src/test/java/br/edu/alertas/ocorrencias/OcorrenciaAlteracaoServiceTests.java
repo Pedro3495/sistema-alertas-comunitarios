@@ -28,7 +28,7 @@ class OcorrenciaAlteracaoServiceTests extends OcorrenciasFixtures {
         var fotoAntes = jdbc.queryForObject("SELECT conteudo FROM fotos_ocorrencia WHERE ocorrencia_id = ?", byte[].class, salva.getId());
 
         service.alterar(p, TipoOcorrencia.OUTROS, "Queda de árvore", "Descrição corrigida", "Ponte fictícia", outraArea,
-                "  Morador informou endereço errado.  ", "Evite a ponte");
+                "  Morador informou endereço errado.  ", null, "Evite a ponte");
 
         var atual = service.buscar(p);
         assertThat(atual.getTipo()).isEqualTo(TipoOcorrencia.OUTROS);
@@ -67,12 +67,23 @@ class OcorrenciaAlteracaoServiceTests extends OcorrenciasFixtures {
         long outraArea = novaArea();
         long daNovaArea = idDoMorador(novoMorador(outraArea));
 
-        service.alterar(p, TipoOcorrencia.DESASTRE, null, "Descrição fictícia", "Rua corrigida", outraArea, "Justificativa interna fictícia", "");
+        // Decisão de Pedro (23/11/2026): com alerta anterior, o resumo escrito pelo representante é obrigatório.
+        assertThatExceptionOfType(ErroOcorrencia.class).isThrownBy(() -> service.alterar(p, TipoOcorrencia.DESASTRE, null,
+                "Descrição fictícia", "Rua corrigida", outraArea, "Justificativa interna fictícia", " ", ""))
+                .satisfies(e -> assertThat(e.getCampo()).isEqualTo("resumo"));
+        assertThat(service.alteracoes(p)).isEmpty(); // nada gravado nem auditado
+        assertThat(acoes()).noneMatch(a -> a.startsWith("ALTERAR_OCORRENCIA"));
+
+        service.alterar(p, TipoOcorrencia.DESASTRE, null, "Descrição fictícia", "Rua corrigida", outraArea, "Justificativa interna fictícia",
+                "O ponto de referência foi corrigido para a rua principal.", "");
 
         var aviso = alertas.daOcorrencia(p).get(0);
         assertThat(aviso.getTipo()).isEqualTo(TipoComunicado.ALTERACAO);
         assertThat(aviso.getTitulo()).isEqualTo("Alteração da ocorrência " + p);
-        assertThat(aviso.getMensagem()).startsWith("Localização: de \"Ponte fictícia\" para \"Rua corrigida\".").doesNotContain("Justificativa");
+        // O aviso leva o resumo aprovado, não o texto gerado por campo (que continua na auditoria e no histórico).
+        assertThat(aviso.getMensagem()).isEqualTo("O ponto de referência foi corrigido para a rua principal.");
+        assertThat(service.alteracoes(p)).singleElement().extracting(AlteracaoOcorrencia::getResumo).asString()
+                .startsWith("Localização: de \"Ponte fictícia\" para \"Rua corrigida\".");
         assertThat(aviso.getOrientacoes()).isNull(); // orientações só quando necessárias
         // Regra 3: destinatários das emissões anteriores, sem desativado; quem só está na nova área não recebe.
         assertThat(jdbc.queryForList("SELECT morador_id FROM destinatarios_comunicado WHERE comunicado_id = ?", Long.class, aviso.getId()))
@@ -95,12 +106,12 @@ class OcorrenciaAlteracaoServiceTests extends OcorrenciasFixtures {
                 {TipoOcorrencia.DESASTRE, null, "Descrição fictícia", "Ponte fictícia", area, "Nada mudou", "alteracao"}};
         for (var c : invalidos) {
             assertThatExceptionOfType(ErroOcorrencia.class)
-                    .isThrownBy(() -> service.alterar(p, (TipoOcorrencia) c[0], (String) c[1], (String) c[2], (String) c[3], (Long) c[4], (String) c[5], null))
+                    .isThrownBy(() -> service.alterar(p, (TipoOcorrencia) c[0], (String) c[1], (String) c[2], (String) c[3], (Long) c[4], (String) c[5], null, null))
                     .satisfies(e -> assertThat(e.getCampo()).isEqualTo(c[6]));
         }
         jdbc.update("UPDATE ocorrencias SET situacao = 'ENCERRADA' WHERE protocolo = ?", p);
         assertThatExceptionOfType(ErroOcorrencia.class)
-                .isThrownBy(() -> service.alterar(p, TipoOcorrencia.OBRA, null, "D", "L", area, "J", null)).withMessageContaining("encerrada");
+                .isThrownBy(() -> service.alterar(p, TipoOcorrencia.OBRA, null, "D", "L", area, "J", null, null)).withMessageContaining("encerrada");
         assertThat(service.buscar(p).getTipo()).isEqualTo(TipoOcorrencia.DESASTRE);
         assertThat(service.alteracoes(p)).isEmpty();
         assertThat(acoes()).hasSize(1);
@@ -111,19 +122,19 @@ class OcorrenciaAlteracaoServiceTests extends OcorrenciasFixtures {
         String cpf = novoMorador(novaArea());
         entrarComoMorador(cpf);
         var p = service.registrarPorMorador(new DadosOcorrencia(UUID.randomUUID(), TipoOcorrencia.OBRA, null, "D", "L", null, List.of(imagem("png")))).getProtocolo();
-        assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(() -> service.alterar(p, TipoOcorrencia.OBRA, null, "Autor", "L", area, "J", null));
+        assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(() -> service.alterar(p, TipoOcorrencia.OBRA, null, "Autor", "L", area, "J", null, null));
         assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(() -> service.alteracoes(p));
         autenticar(administrador(), "ADMINISTRADOR");
-        assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(() -> service.alterar(p, TipoOcorrencia.OBRA, null, "Admin", "L", area, "J", null));
+        assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(() -> service.alterar(p, TipoOcorrencia.OBRA, null, "Admin", "L", area, "J", null, null));
         SecurityContextHolder.clearContext();
-        assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(() -> service.alterar(p, TipoOcorrencia.OBRA, null, "Anônimo", "L", area, "J", null));
+        assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(() -> service.alterar(p, TipoOcorrencia.OBRA, null, "Anônimo", "L", area, "J", null, null));
 
         var outro = novaConta(true);
         autenticar(acesso.autenticar(outro.getLogin(), DEFINITIVA).orElseThrow(), "REPRESENTANTE");
-        service.alterar(p, TipoOcorrencia.OBRA, null, "Corrigida", "L", area, "Outra área, outro representante", null);
+        service.alterar(p, TipoOcorrencia.OBRA, null, "Corrigida", "L", area, "Outra área, outro representante", null, null);
         assertThat(service.alteracoes(p)).singleElement().extracting(AlteracaoOcorrencia::getRepresentanteNome).isEqualTo(outro.getNomeCompleto());
         assertThat(service.buscar(p).getMoradorId()).isEqualTo(idDoMorador(cpf)); // autor preservado
         assertThatExceptionOfType(EntityNotFoundException.class)
-                .isThrownBy(() -> service.alterar(UUID.randomUUID(), TipoOcorrencia.OBRA, null, "D", "L", area, "J", null));
+                .isThrownBy(() -> service.alterar(UUID.randomUUID(), TipoOcorrencia.OBRA, null, "D", "L", area, "J", null, null));
     }
 }

@@ -151,7 +151,7 @@ public class OcorrenciaController {
             model.addAttribute("alteracao", Map.of("tipo", ocorrencia.getTipo().name(),
                     "especificacaoOutros", Objects.toString(ocorrencia.getEspecificacaoOutros(), ""),
                     "descricao", ocorrencia.getDescricao(), "localizacao", ocorrencia.getLocalizacao(),
-                    "areaId", ocorrencia.getAreaId().toString(), "justificativa", "", "orientacoes", ""));
+                    "areaId", ocorrencia.getAreaId().toString(), "justificativa", "", "resumo", "", "orientacoes", ""));
         }
         model.addAttribute("comunicados", alertas.daOcorrencia(protocolo));
         return "ocorrencias/detalhe";
@@ -186,7 +186,8 @@ public class OcorrenciaController {
     String alterar(@PathVariable UUID protocolo, @RequestParam(defaultValue = "") String tipo,
             @RequestParam(defaultValue = "") String especificacaoOutros, @RequestParam(defaultValue = "") String descricao,
             @RequestParam(defaultValue = "") String localizacao, @RequestParam(defaultValue = "") String areaId,
-            @RequestParam(defaultValue = "") String justificativa, @RequestParam(defaultValue = "") String orientacoes,
+            @RequestParam(defaultValue = "") String justificativa, @RequestParam(defaultValue = "") String resumo,
+            @RequestParam(defaultValue = "") String orientacoes,
             Model model, HttpServletResponse response, RedirectAttributes redirect) {
         usuarios.exigirRepresentante();
         TipoOcorrencia tipoEscolhido = null;
@@ -194,14 +195,14 @@ public class OcorrenciaController {
         try { tipoEscolhido = TipoOcorrencia.valueOf(tipo); } catch (IllegalArgumentException ignorada) { } // o domínio rejeita nulo
         try { area = Long.valueOf(areaId); } catch (NumberFormatException ignorada) { }
         try {
-            service.alterar(protocolo, tipoEscolhido, especificacaoOutros, descricao, localizacao, area, justificativa, orientacoes);
+            service.alterar(protocolo, tipoEscolhido, especificacaoOutros, descricao, localizacao, area, justificativa, resumo, orientacoes);
         } catch (EntityNotFoundException exception) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         } catch (ErroOcorrencia exception) {
             response.setStatus(HttpStatus.BAD_REQUEST.value());
             model.addAttribute("erroAlteracao", exception);
             model.addAttribute("alteracao", Map.of("tipo", tipo, "especificacaoOutros", especificacaoOutros, "descricao", descricao,
-                    "localizacao", localizacao, "areaId", areaId, "justificativa", justificativa, "orientacoes", orientacoes));
+                    "localizacao", localizacao, "areaId", areaId, "justificativa", justificativa, "resumo", resumo, "orientacoes", orientacoes));
             return detalhe(protocolo, model);
         }
         redirect.addFlashAttribute("alterada", true);
@@ -251,10 +252,16 @@ public class OcorrenciaController {
 
     // RF010 regra 4: reenvio manual apenas para quem falhou nos dois canais.
     @PostMapping("/ocorrencias/{protocolo}/alertas/{id}/reenvio")
-    String reenviarAlerta(@PathVariable UUID protocolo, @PathVariable Long id, RedirectAttributes redirect) {
+    String reenviarAlerta(@PathVariable UUID protocolo, @PathVariable Long id, Model model, HttpServletResponse response,
+            RedirectAttributes redirect) {
         usuarios.exigirRepresentante();
         try { redirect.addFlashAttribute("envioAlerta", alertas.reenviar(protocolo, id).getFalhas()); }
         catch (EntityNotFoundException exception) { throw new ResponseStatusException(HttpStatus.NOT_FOUND); }
+        catch (ErroOcorrencia exception) {
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            model.addAttribute("erroReenvio", exception);
+            return detalhe(protocolo, model);
+        }
         return "redirect:/ocorrencias/" + protocolo;
     }
 

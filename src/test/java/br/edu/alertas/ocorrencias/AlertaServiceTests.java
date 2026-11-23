@@ -78,6 +78,23 @@ class AlertaServiceTests extends OcorrenciasFixtures {
         assertThatExceptionOfType(EntityNotFoundException.class).isThrownBy(() -> alertas.reenviar(confirmada(), segundo.getId()));
     }
 
+    // Decisão de Pedro (23/11/2026): ocorrência encerrada recusa o reenvio sem enviar nada nem auditar reenvio.
+    @Test
+    void recusaReenvioDeOcorrenciaEncerradaSemEnviar() {
+        morador(area, "SMS");
+        var p = confirmada();
+        doReturn(false).when(envio).enviar(any(CanalCredenciais.class), anyString(), anyString());
+        var alerta = alertas.emitir(p, "Alerta fictício", "M", "O");
+        assertThat(alerta.isReenviavel()).isTrue();
+        service.encerrar(p, "Justificativa interna fictícia", "Risco controlado.", null);
+
+        Mockito.reset(envio);
+        assertThatExceptionOfType(ErroOcorrencia.class).isThrownBy(() -> alertas.reenviar(p, alerta.getId()))
+                .withMessageContaining("encerrada").satisfies(e -> assertThat(e.getCampo()).isEqualTo("reenvio"));
+        verify(envio, never()).enviar(any(), anyString(), anyString());
+        assertThat(acoes()).noneMatch(a -> a.startsWith("REENVIAR_ALERTA"));
+    }
+
     @Test
     void avisoDeAlteracaoVaiParaAUniaoDosDestinatariosAnterioresSemDesativadosESemJustificativa() {
         String cpfMudou = novoMorador(area);

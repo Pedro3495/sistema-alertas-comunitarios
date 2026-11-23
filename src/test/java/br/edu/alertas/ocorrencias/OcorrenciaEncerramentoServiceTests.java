@@ -82,7 +82,7 @@ class OcorrenciaEncerramentoServiceTests extends OcorrenciasFixtures {
         assertThatExceptionOfType(ErroOcorrencia.class).isThrownBy(() -> service.encerrar(p, "De novo", null, null)).withMessageContaining("encerrada");
         assertThatExceptionOfType(ErroOcorrencia.class).isThrownBy(() -> service.verificar(p, SituacaoOcorrencia.CONFIRMADA, "Reabrir")).withMessageContaining("encerrada");
         assertThatExceptionOfType(ErroOcorrencia.class)
-                .isThrownBy(() -> service.alterar(p, TipoOcorrencia.OBRA, null, "D", "L", area, "J", null)).withMessageContaining("encerrada");
+                .isThrownBy(() -> service.alterar(p, TipoOcorrencia.OBRA, null, "D", "L", area, "J", null, null)).withMessageContaining("encerrada");
         assertThatExceptionOfType(ErroOcorrencia.class).isThrownBy(() -> alertas.emitir(p, "T", "M", "O"));
         assertThat(service.buscar(p).getSituacao()).isEqualTo("Encerrada");
         assertThat(acoes()).hasSize(2);

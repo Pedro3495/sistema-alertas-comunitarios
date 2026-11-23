@@ -332,6 +332,14 @@ class OcorrenciasHttpTests extends OcorrenciasFixtures {
         assertThat(vizinho.get("/morador/alertas").body()).contains("Aviso de alteração: Alteração da ocorrência " + p,
                 "Situação alterada de Confirmada para Não confirmada.", "Pode voltar para casa").doesNotContain("Justificativa interna fictícia");
         assertThat(jdbc.queryForObject("SELECT count(*) FROM comunicados_ocorrencia c JOIN ocorrencias o ON o.id = c.ocorrencia_id WHERE o.protocolo = ?", Long.class, p)).isEqualTo(2);
+
+        // Decisão de Pedro (23/11/2026): encerrada recusa o reenvio; o representante vê a recusa e nada é enviado.
+        service.encerrar(p, "Justificativa interna fictícia", "Risco controlado.", null);
+        long reenviosAntes = acoes().stream().filter(a -> a.startsWith("REENVIAR_ALERTA")).count();
+        var recusa = rep.form("POST", rota + "/" + alertaId + "/reenvio", Map.of("_csrf", token));
+        assertThat(recusa.statusCode()).isEqualTo(400);
+        assertThat(recusa.body()).contains("Ocorrência encerrada: o reenvio de alerta não é permitido.").doesNotContain("Reenviar para quem falhou");
+        assertThat(acoes().stream().filter(a -> a.startsWith("REENVIAR_ALERTA")).count()).isEqualTo(reenviosAntes);
     }
 
     // RF011: alteração por formulário real com CSRF; aviso ao morador que recebeu o alerta, sem a justificativa interna.
@@ -346,7 +354,7 @@ class OcorrenciasHttpTests extends OcorrenciasFixtures {
         String token = csrf(tela);
         Map<String, String> campos = new java.util.HashMap<>(Map.of("_csrf", token, "tipo", "DESASTRE", "descricao", "Descrição fictícia",
                 "localizacao", "Rua corrigida", "areaId", String.valueOf(area), "justificativa", "Justificativa interna fictícia",
-                "orientacoes", "Use a rua alta"));
+                "resumo", "O ponto de referência mudou para a rua principal.", "orientacoes", "Use a rua alta"));
 
         var semCsrf = new java.util.HashMap<>(campos);
         semCsrf.remove("_csrf");
@@ -361,6 +369,11 @@ class OcorrenciasHttpTests extends OcorrenciasFixtures {
         service.verificar(p, SituacaoOcorrencia.CONFIRMADA, "Vistoria fictícia");
         rep.form("POST", "/ocorrencias/" + p + "/alertas", Map.of("_csrf", token, "titulo", "Alerta fictício", "mensagem", "M", "orientacoes", "O"));
         assertThat(rep.get("/ocorrencias/" + p).body()).contains("Alerta enviado a todos os destinatários."); // consome o aviso da emissão
+        var semResumo = new java.util.HashMap<>(campos); // decisão de Pedro (23/11/2026): com alerta, o resumo é obrigatório
+        semResumo.put("resumo", "");
+        var erroResumo = rep.form("POST", rota, semResumo);
+        assertThat(erroResumo.statusCode()).isEqualTo(400);
+        assertThat(erroResumo.body()).contains("Informe o resumo da mudança para o aviso de alteração.", "Rua corrigida");
         var ok = rep.form("POST", rota, campos);
         assertThat(ok.statusCode()).isEqualTo(302);
         assertThat(rep.get("/ocorrencias/" + p).body()).contains("Alteração salva.", "Localização: de &quot;Ponte fictícia&quot; para &quot;Rua corrigida&quot;.",
@@ -369,7 +382,8 @@ class OcorrenciasHttpTests extends OcorrenciasFixtures {
 
         var vizinho = moradorAutenticado(cpf);
         assertThat(vizinho.get("/morador/alertas").body()).contains("Aviso de alteração: Alteração da ocorrência " + p,
-                "Rua corrigida", "Use a rua alta").doesNotContain("Justificativa interna fictícia");
+                "O ponto de referência mudou para a rua principal.", "Use a rua alta")
+                .doesNotContain("Justificativa interna fictícia", "Localização: de");
         var detalhe = vizinho.get("/morador/ocorrencias/" + p).body();
         assertThat(detalhe).contains("Rua corrigida").doesNotContain("Alterar ocorrência", "Justificativa interna fictícia");
         var tentativa = new java.util.HashMap<>(campos);

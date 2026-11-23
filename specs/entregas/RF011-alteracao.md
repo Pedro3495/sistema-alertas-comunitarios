@@ -17,7 +17,7 @@ Pendentes pelas fontes, em ordem: RF011, RF012 e partes do RF013 (RF001–RF010 
 
 ## Decisões de interpretação (registradas, sem regra nova)
 
-- "Resumo aprovado" (regra 6): o resumo é gerado pelo sistema a partir dos campos alterados, no mesmo padrão do aviso da revisão do RF009 ("Situação alterada de X para Y."). Não foi criado campo de resumo livre. Se a dupla preferir um resumo digitado pelo representante, é mudança pequena no formulário.
+- "Resumo aprovado" (regra 6): **substituído pela decisão de Pedro (23/11/2026)** — o representante escreve o resumo; obrigatório com alerta anterior e usado no aviso. O texto gerado por campo continua no histórico e na auditoria.
 - Recusar alteração sem nenhuma mudança é validação de entrada, não regra de negócio nova.
 
 ## Limites

@@ -51,7 +51,11 @@ public class AlertaService {
     @Transactional
     public Comunicado reenviar(UUID protocolo, Long alertaId) {
         representanteAtual();
-        ocorrencias.buscarComBloqueio(protocolo).orElseThrow(() -> new EntityNotFoundException("Ocorrência não encontrada."));
+        var ocorrencia = ocorrencias.buscarComBloqueio(protocolo).orElseThrow(() -> new EntityNotFoundException("Ocorrência não encontrada."));
+        // Decisão de Pedro (23/11/2026): ocorrência encerrada não reenvia alerta; a recusa não envia nada.
+        if (ocorrencia.getSituacaoAtual() == SituacaoOcorrencia.ENCERRADA) {
+            throw new ErroOcorrencia("reenvio", "Ocorrência encerrada: o reenvio de alerta não é permitido.");
+        }
         var alerta = repository.findByIdAndOcorrencia_Protocolo(alertaId, protocolo)
                 .filter(c -> c.getTipo() == TipoComunicado.ALERTA).orElseThrow(() -> new EntityNotFoundException("Alerta não encontrado."));
         alerta.distribuir(envio);

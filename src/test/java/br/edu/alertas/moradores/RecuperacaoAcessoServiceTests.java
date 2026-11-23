@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-import br.edu.alertas.moradores.RecuperacaoAcessoService.ResultadoEnvio;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
@@ -130,20 +129,24 @@ class RecuperacaoAcessoServiceTests {
     }
 
     @Test
-    void falhaDeEnvioInformaSemTrocarCanalETelefoneDesconhecidoOuInativoNaoRecebe() {
+    void falhaDeEnvioFicaNaAuditoriaSemTrocarCanalETelefoneDesconhecidoOuInativoNaoRecebe() {
+        // Decisão de Pedro (23/11/2026): sem retorno ao chamador; a falha só aparece na auditoria.
         doReturn(false).when(envio).enviarCodigoRecuperacao(any(), any(), any());
-        assertThat(recuperacao.solicitarCodigo(CELULAR)).isEqualTo(ResultadoEnvio.FALHA_ENVIO);
+        recuperacao.solicitarCodigo(CELULAR);
         doThrow(new IllegalStateException("provedor fora")).when(envio).enviarCodigoRecuperacao(any(), any(), any());
-        assertThat(recuperacao.solicitarCodigo(CELULAR)).isEqualTo(ResultadoEnvio.FALHA_ENVIO);
+        recuperacao.solicitarCodigo(CELULAR);
         verify(envio, times(2)).enviarCodigoRecuperacao(eq(CanalCredenciais.WHATSAPP), eq(CELULAR), any());
         verify(envio, never()).enviarCodigoRecuperacao(eq(CanalCredenciais.SMS), any(), any());
+        assertThat(jdbc.queryForList("SELECT acao FROM registros_auditoria WHERE responsavel_tipo = 'MORADOR' AND responsavel_id = ? ORDER BY id",
+                String.class, morador)).containsExactly(RecuperacaoAcessoService.PEDIDO, RecuperacaoAcessoService.FALHA_ENVIO,
+                RecuperacaoAcessoService.PEDIDO, RecuperacaoAcessoService.FALHA_ENVIO);
         reset(envio);
 
-        assertThat(recuperacao.solicitarCodigo("81900000099")).isEqualTo(ResultadoEnvio.SOLICITADO);
-        assertThat(recuperacao.solicitarCodigo(null)).isEqualTo(ResultadoEnvio.SOLICITADO);
+        recuperacao.solicitarCodigo("81900000099");
+        recuperacao.solicitarCodigo(null);
         assertThat(recuperacao.redefinirSenha("81900000099", "123456", NOVA)).isFalse();
         jdbc.update("UPDATE moradores SET ativa = false WHERE id = ?", morador);
-        assertThat(recuperacao.solicitarCodigo(CELULAR)).isEqualTo(ResultadoEnvio.SOLICITADO);
+        recuperacao.solicitarCodigo(CELULAR);
         verifyNoInteractions(envio);
     }
 
@@ -165,8 +168,7 @@ class RecuperacaoAcessoServiceTests {
         String terceiro = solicitar();
         reset(envio);
         relogio(AGORA.plus(Duration.ofMinutes(59)));
-        assertThat(recuperacao.solicitarCodigo(CELULAR)).as("4º: mesma resposta de telefone desconhecido")
-                .isEqualTo(recuperacao.solicitarCodigo("81900000099"));
+        recuperacao.solicitarCodigo(CELULAR); // 4º: recusado sem envio, mesma resposta (nenhuma) de telefone desconhecido
         verifyNoInteractions(envio);
 
         relogio(AGORA.plus(Duration.ofHours(1)));
@@ -182,7 +184,7 @@ class RecuperacaoAcessoServiceTests {
     }
 
     private String solicitar() {
-        assertThat(recuperacao.solicitarCodigo(CELULAR)).isEqualTo(ResultadoEnvio.SOLICITADO);
+        recuperacao.solicitarCodigo(CELULAR);
         var codigos = ArgumentCaptor.forClass(String.class);
         verify(envio).enviarCodigoRecuperacao(eq(CanalCredenciais.WHATSAPP), eq(CELULAR), codigos.capture());
         return codigos.getValue();

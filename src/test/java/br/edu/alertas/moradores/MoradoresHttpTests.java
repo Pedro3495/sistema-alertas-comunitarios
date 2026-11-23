@@ -225,21 +225,28 @@ class MoradoresHttpTests {
     }
 
     @Test
-    void falhaNoEnvioDoCodigoInformaEReenviaPeloMesmoCanalETelefoneDesconhecidoNaoERevelado() throws Exception {
-        cadastrarPeloRepresentante();
+    void falhaNoEnvioDoCodigoRespondeIgualATelefoneDesconhecidoEReenviaPeloMesmoCanal() throws Exception {
+        long id = cadastrarPeloRepresentante();
+        // Decisão de Pedro (23/11/2026, RS003): mesmo status, destino e tela para falha de envio e telefone desconhecido.
         doReturn(false).when(envio).enviarCodigoRecuperacao(any(), any(), any());
         var morador = new Navegador();
         var falha = morador.post("/morador/recuperar", morador.get("/morador/recuperar").body(), Map.of("celular", "81900000001"));
-        assertThat(falha.statusCode()).isEqualTo(200);
-        assertThat(falha.body()).contains("O código não foi enviado", "mesmo canal", "Reenviar código", "value=\"81900000001\"");
-        doCallRealMethod().when(envio).enviarCodigoRecuperacao(any(), any(), any());
-        var reenvio = morador.post("/morador/recuperar", falha.body(), Map.of("celular", "81900000001"));
-        assertThat(reenvio.headers().firstValue("Location").orElseThrow()).endsWith("/morador/recuperar/codigo");
-        verify(envio, times(2)).enviarCodigoRecuperacao(eq(CanalCredenciais.SMS), eq("81900000001"), anyString());
-
         var outro = new Navegador();
         var desconhecido = outro.post("/morador/recuperar", outro.get("/morador/recuperar").body(), Map.of("celular", "81900000099"));
-        assertThat(desconhecido.headers().firstValue("Location").orElseThrow()).endsWith("/morador/recuperar/codigo");
+        assertThat(falha.statusCode()).isEqualTo(desconhecido.statusCode()).isEqualTo(302);
+        assertThat(falha.headers().firstValue("Location")).isEqualTo(desconhecido.headers().firstValue("Location"))
+                .hasValueSatisfying(l -> assertThat(l).endsWith("/morador/recuperar/codigo"));
+        var telaFalha = morador.get("/morador/recuperar/codigo").body();
+        var telaDesconhecido = outro.get("/morador/recuperar/codigo").body();
+        assertThat(telaFalha.replace(csrf(telaFalha), "")).isEqualTo(telaDesconhecido.replace(csrf(telaDesconhecido), ""))
+                .contains("Se o código não chegar, peça um novo").doesNotContain("não foi enviado");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM registros_auditoria WHERE acao = 'FALHA_ENVIO_CODIGO_RECUPERACAO' AND responsavel_tipo = 'MORADOR' AND responsavel_id = ?",
+                Long.class, id)).isEqualTo(1);
+
+        doCallRealMethod().when(envio).enviarCodigoRecuperacao(any(), any(), any());
+        var reenvio = morador.post("/morador/recuperar", morador.get("/morador/recuperar").body(), Map.of("celular", "81900000001"));
+        assertThat(reenvio.headers().firstValue("Location").orElseThrow()).endsWith("/morador/recuperar/codigo");
+        verify(envio, times(2)).enviarCodigoRecuperacao(eq(CanalCredenciais.SMS), eq("81900000001"), anyString());
         verify(envio, times(2)).enviarCodigoRecuperacao(any(), any(), any());
     }
 
