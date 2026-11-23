@@ -80,6 +80,13 @@ class GestaoRepresentantesHttpTests {
     }
 
     @Test
+    void caixaDeEnvioSimuladoDesligadaPorPadraoRespondeNaoEncontrada() throws Exception {
+        assertThat(adminAutenticado().get("/admin/simulador/mensagens").statusCode()).isEqualTo(404);
+        assertThat(adminAutenticado().get("/admin/representantes").body()).doesNotContain("/admin/simulador/mensagens");
+        caminho(new Navegador().get("/admin/simulador/mensagens"), "/admin/entrar");
+    }
+
+    @Test
     void percorreGestaoCompletaMantendoContaHistoricoESegredosForaDaAuditoria() throws Exception {
         Navegador admin = adminAutenticado();
         String login = "gestao-" + UUID.randomUUID();

@@ -2,7 +2,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Representantes · Alertas comunitários</title><link rel="stylesheet" th:href="@{/css/gestao.css}"></head>
 <body class="gestao"><header class="cabecalho"><a th:href="@{/}">Alertas comunitários</a>
-<nav aria-label="Navegação do administrador"><a th:href="@{/admin/representantes}">Representantes</a><a th:href="@{/admin/auditoria}">Auditoria</a>
+<nav aria-label="Navegação do administrador"><a th:href="@{/admin/representantes}">Representantes</a><a th:href="@{/admin/auditoria}">Auditoria</a><a th:if="${@caixaSaidaSimulada.ativa()}" th:href="@{/admin/simulador/mensagens}">Envio simulado</a>
 <form th:action="@{/admin/sair}" method="post"><button class="secundario" type="submit">Sair</button></form></nav></header><main>
 <div class="titulo-acoes"><h1>Contas de representantes</h1><a class="botao" th:href="@{/admin/representantes/novo}">Cadastrar representante</a></div>
 <p>Cadastre e mantenha as contas individuais das entidades públicas.</p>
