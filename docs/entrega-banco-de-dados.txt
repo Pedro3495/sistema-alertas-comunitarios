@@ -285,4 +285,22 @@ Nunca: alterar o Word; reescrever migrações; apagar banco/volumes de outros; m
 O que já existia e o que você criou para cada ponto, testes com saída real, caminho dos arquivos de entrega, PR e CI.
 ```
 
-[Pedro: complete com seus prompts originais, se quiser]
+**Prompt do aluno (reconstruído).** Os pedidos foram feitos aos poucos, em conversa com o agente, e não guardei o texto exato. Abaixo está o conteúdo consolidado do que pedi:
+
+> Você é o coordenador do desenvolvimento do Sistema de Alertas Comunitários, projeto da faculdade em Java 21, Spring Boot e PostgreSQL. Siga os requisitos aprovados no documento Word do projeto (RF001 a RF013, RS e RNF) e as specs da pasta `specs/`. Não invente regras de negócio: quando faltar uma regra, pergunte para mim.
+>
+> Modele o banco de dados a partir desses requisitos, usando migrações Flyway versionadas que nunca sejam reescritas depois de aplicadas. As tabelas devem garantir as quatro integridades:
+> - **entidade:** chave primária em todas as tabelas;
+> - **referencial:** chaves estrangeiras que impeçam apagar registros ainda referenciados;
+> - **domínio:** tipos adequados, NOT NULL, CHECK de formatos e valores permitidos, DEFAULT;
+> - **regras do negócio:** UNIQUE e CHECK, como CPF e celular únicos, um único autor por ocorrência e especificação obrigatória quando o tipo for "Outros".
+>
+> Para a avaliação de Banco de Dados, inclua também:
+> - uma trigger com sentido no sistema;
+> - um campo indexado que seja usado em uma consulta real;
+> - uma view útil e sem dados pessoais;
+> - contas e permissões com privilégio mínimo: uma conta dona da estrutura, uma para a aplicação e uma só de leitura.
+>
+> Não grave senhas reais em nenhum arquivo. Teste tudo em um banco descartável e mostre as saídas reais. No documento de entrega, coloque uma breve introdução do projeto e apenas os trechos de SQL de cada critério.
+>
+> O envio de SMS/WhatsApp deve ser simulado, sem provedor real.
