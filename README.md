@@ -2,40 +2,44 @@
 
 Projeto acadêmico. Em 21/11/2026, Pedro assumiu a continuidade sem o colega, com apoio de IA e subagentes. O fluxo atual é [desenvolvimento orientado por especificação](docs/SDD.md). Base em Java 21, Spring Boot 4.1.2, Spring MVC/Thymeleaf, Spring Data JPA, PostgreSQL 17 e Flyway; Maven Wrapper versionado.
 
-**Estado da branch de desenvolvimento (22/11/2026):** acesso de representantes, gestão administrativa com auditoria inicial, gestão web de áreas/residências e base interna persistente de moradores implementados, com 177 testes. O cadastro público e o acesso de moradores ainda dependem do envio real de credenciais; ver [contrato da base](specs/entregas/RF001-base.md). Os PRs aguardam revisão e integração; os 13 RF não estão concluídos. Configure o primeiro administrador pelo [comando local](docs/administracao/README.md) e consulte [os limites da entrega atual](docs/residencias/README.md).
+**Envio de SMS/WhatsApp é SIMULADO.** Nenhuma mensagem real sai do sistema: senha temporária, código de recuperação, alertas e avisos passam por implementações simuladas, sem rede e sem provedor contratado.
 
-## Começar no seu computador
+## Como rodar (do zero)
 
-Instale Git, JDK 21 e Docker Desktop com Docker Compose. Abra o Docker Desktop antes de começar. Cada integrante usa seu próprio clone e seu próprio banco local; não compartilhem a pasta de código por Drive/OneDrive nem o arquivo `.env`.
-
-Repositório público: <https://github.com/Pedro3495/sistema-alertas-comunitarios>.
-
-Cada integrante clona no próprio computador:
+Pré-requisitos: Git, JDK 21 e Docker Desktop **aberto** (com Docker Compose).
 
 ```sh
 git clone https://github.com/Pedro3495/sistema-alertas-comunitarios.git
 cd sistema-alertas-comunitarios
+./scripts/preparar.sh                      # cria .env com senha aleatória, sobe o PostgreSQL, compila e roda os testes
+./scripts/configurar-admin.sh criar        # cria o único administrador; login e senha são pedidos no terminal
+ALERTAS_ENVIO_SIMULADO_EXIBIR=true ./scripts/iniciar.sh   # sobe em http://localhost:8080 com a caixa do envio simulado
 ```
 
-Depois execute na raiz:
-
-**macOS / Linux**
-
-```sh
-./scripts/preparar.sh
-./scripts/iniciar.sh
-```
-
-**Windows PowerShell** (com JDK 21 em `JAVA_HOME`)
+Windows PowerShell (JDK 21 em `JAVA_HOME`):
 
 ```powershell
 ./scripts/preparar.ps1
-./scripts/iniciar.ps1
+.\mvnw.cmd -q -DskipTests package
+java -jar target/alertas-comunitarios-0.0.1-SNAPSHOT.jar --spring.main.web-application-type=none --alertas.admin=criar
+$env:ALERTAS_ENVIO_SIMULADO_EXIBIR="true"; ./scripts/iniciar.ps1
 ```
 
-A preparação cria `.env` com senha aleatória local, sobe somente o PostgreSQL, aplica a migração inicial e compila/testa a aplicação. Não instala ferramentas globalmente e não cria usuários do sistema.
+Abra <http://localhost:8080>. Se a porta 8080 ou 55432 estiver ocupada, ajuste `SERVER_PORT` ou `POSTGRES_PORT` no `.env`. Ctrl+C encerra o servidor; `docker compose stop db` para o banco sem apagar dados.
 
-Abra <http://localhost:8080>. Diagnóstico: <http://localhost:8080/actuator/health>. Para encerrar o servidor, use Ctrl+C. `docker compose stop db` para o banco sem apagar seus dados. Se uma porta estiver ocupada, ajuste `POSTGRES_PORT` ou `SERVER_PORT` no `.env` antes de iniciar.
+### Roteiro de demonstração
+
+1. Administrador (`/admin/entrar`): cadastre um representante com senha temporária.
+2. Representante (`/entrar`): troque a senha no primeiro acesso; cadastre área de risco, residência e morador.
+3. O morador "recebe" a senha temporária pelo envio simulado. Com `ALERTAS_ENVIO_SIMULADO_EXIBIR=true`, o administrador vê a mensagem em **Envio simulado** (`/admin/simulador/mensagens`, só em memória; reiniciar apaga). Sem a variável, a página não existe (404) e a senha não aparece em lugar nenhum.
+4. Morador (`/morador/entrar`, CPF + senha): troca a senha, registra ocorrência com foto, consulta alertas e muda preferências. "Esqueci minha senha" envia um código, também visível na caixa simulada.
+5. Representante: consulta, verifica, emite alerta (simulado), altera e encerra a ocorrência; o morador vê alerta e avisos em "Alertas recebidos". Administrador e representante consultam a auditoria.
+
+Use apenas dados fictícios. O administrador esquecido é recuperado com `./scripts/configurar-admin.sh recuperar` ([detalhes](docs/administracao/README.md)).
+
+### Implantação com HTTPS (RS009)
+
+Localmente a aplicação roda em HTTP no loopback. Numa implantação real, publique-a somente atrás de HTTPS: um proxy reverso (por exemplo Nginx ou Caddy) com certificado TLS encaminhando para a porta da aplicação, e `server.forward-headers-strategy=native` para o Spring reconhecer o esquema original. Não exponha a porta HTTP nem a do PostgreSQL. Isso não foi configurado nem testado nesta entrega.
 
 ## Desenvolver com IA
 
@@ -45,13 +49,14 @@ Abra <http://localhost:8080>. Diagnóstico: <http://localhost:8080/actuator/heal
 
 O fluxo atual está em [SDD](docs/SDD.md) e as instruções comuns em [AGENTS.md](AGENTS.md). O [guia da dupla](docs/FLUXO_DE_TRABALHO.md) preserva a organização inicial e informa a mudança de responsável.
 
-## Onde consultar
+## Documentação da entrega
 
-- [PRD](prd.md), [arquitetura](arquitetura.md) e [exigências do AV03](docs/AV03.md).
-- [Specs de implementação](specs/README.md) e [transcrições dos requisitos](docs/requisitos/).
-- Documento aprovado preservado em `docs/referencias/Requisitos_Aprovados.docx`, identificado por SHA-256 em `docs/referencias/manifesto.json`.
-- Protótipos editáveis e prints em `design/`; exemplos de POO a documentar em [docs/POO.md](docs/POO.md).
-- Script de banco em `database/schema.sql`; migrações em `src/main/resources/db/migration/`.
+- [PRD](prd.md) e [arquitetura](arquitetura.md) (camadas, pacotes, Spring/JPA/PostgreSQL/Flyway, portas simuladas).
+- [Evidências de POO](docs/POO.md) com arquivo:linha para encapsulamento, abstração, herança e polimorfismo.
+- [Specs por RF](specs/README.md), [contratos de entrega](specs/entregas/) e [requisitos transcritos](docs/requisitos/).
+- Banco: [estrutura exportada](database/schema.sql), [contas e permissões](database/contas-permissoes.sql), [documento do banco](docs/entrega-banco-de-dados.md) e migrações em `src/main/resources/db/migration/`.
+- [Skills e instruções de IA usadas](docs/SKILLS.md), [fluxo SDD](docs/SDD.md) e [exigências do AV03](docs/AV03.md).
+- Documento aprovado preservado em `docs/referencias/Requisitos_Aprovados.docx` (SHA-256 em `docs/referencias/manifesto.json`); protótipos em `design/`.
 
 ## Conferência
 
@@ -60,6 +65,6 @@ docker compose up -d --wait db
 ./scripts/verificar.sh
 ```
 
-O CI repete a compilação e os testes com PostgreSQL novo em cada PR. O teste inicial verifica conexão real, migração, página HTTP e bloqueio de rota não autorizada; não comprova nenhum RF concluído.
+Os testes exigem um banco **sem administrador nem dados de demonstração** e se recusam a rodar no banco usado para demonstrar. Para conferir depois de demonstrar, use outro banco: `COMPOSE_PROJECT_NAME=verificacao POSTGRES_PORT=55433 docker compose up -d --wait db` e rode o script com as mesmas duas variáveis exportadas. O CI repete a compilação e os testes com PostgreSQL novo em cada PR.
 
-Nenhum provedor de SMS/WhatsApp, deploy público da aplicação ou serviço pago está configurado. Essas integrações entram nas tarefas correspondentes, com escolha técnica registrada e testes reais antes de serem declaradas prontas. A senha temporária do cadastro de moradores usa um simulador local (`EnvioCredenciaisSimulado`, sem rede); envio simulado não é envio real.
+Nenhum provedor de SMS/WhatsApp, deploy público ou serviço pago está configurado. `EnvioCredenciaisSimulado` e `EnvioAlertasSimulado` não usam rede; envio simulado não é envio real.
